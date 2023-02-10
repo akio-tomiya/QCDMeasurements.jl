@@ -1,0 +1,18 @@
+name = "QCDMeasurements"
+uuid = "15719ebc-80aa-4a1c-a78b-278b460177d7"
+authors = ["Yuki Nagai <cometscome@gmail.com> and contributors"]
+version = "0.1.0"
+
+[deps]
+Gaugefields = "a461e10c-0d91-493e-bc41-027b226eee91"
+LatticeDiracOperators = "019239df-b0e3-486e-8e4c-d1c29ee5d6b9"
+Wilsonloop = "f3c8d4fe-2f22-401d-8228-e6a01d7a1d02"
+
+[compat]
+julia = "1.8"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
