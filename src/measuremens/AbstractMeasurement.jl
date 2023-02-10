@@ -26,7 +26,10 @@ function measure(measurement::M, itrj, U) where {M<:AbstractMeasurement}
     error("measure with a type $M is not supported")
 end
 
+const BoundaryCondition_4D_default = [1, 1, 1, -1]
+const BoundaryCondition_2D_default = [1, -1]
 
 
 include("measure_plaquette.jl")
 include("measure_polyakov.jl")
+include("measure_Pion_correlator.jl")
