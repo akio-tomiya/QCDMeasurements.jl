@@ -62,3 +62,22 @@ Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
     verbose_level::Int64 = 2
     printvalues::Bool = true
 end
+
+Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
+    #common::Measurement_common_parameters = Measurement_common_parameters()
+    methodname::String = "Chiral_condensate"
+    measure_every::Int64 = 10
+    fermiontype::String = "Staggered"
+    Nf::Int64 = 4
+    eps::Float64 = 1e-19
+    mass::Float64 = 0.5
+    MaxCGstep::Int64 = 3000
+    smearing_for_fermion::String = "nothing"
+    stout_numlayers::Union{Nothing,Int64} = nothing
+    stout_ρ::Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Union{Nothing,Array{String,1}} = nothing
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    Nr = 10
+    #smearing::Smearing_parameters = Stout_parameters()
+end

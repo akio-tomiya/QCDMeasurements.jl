@@ -33,3 +33,4 @@ const BoundaryCondition_2D_default = [1, -1]
 include("measure_plaquette.jl")
 include("measure_polyakov.jl")
 include("measure_Pion_correlator.jl")
+include("measure_chiral_condensate.jl")

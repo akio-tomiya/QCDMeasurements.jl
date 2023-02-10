@@ -37,5 +37,15 @@ function SU3test()
     println("pion correlator with Staggered fermion: $pion_s")
     println("pion correlator with  Wilson fermion: $pion_w")
 
+    m_chiral_Staggered = Chiral_condensate_measurement(U,fermiontype = "Staggered")
+    m_chiral_Wilson = Chiral_condensate_measurement(U,fermiontype = "Wilson")
+    chiral_s = get_value(measure(m_chiral_Staggered,U))
+    chiral_w = get_value(measure(m_chiral_Wilson,U))
+
+    println("Chiral condensate with Staggered fermion: $chiral_s")
+    println("Chiral condensatewith  Wilson fermion: $chiral_w")
+
+
+
 end
 SU3test()
