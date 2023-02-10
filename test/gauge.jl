@@ -28,6 +28,13 @@ function SU3test()
     println("plaq: $plaq")
     println("poly: $poly")
 
+    m_energy = Energy_density_measurement(U)
+    m_topo = Topological_charge_measurement(U)
+    energy = get_value(measure(m_energy,U))
+    topo = get_value(measure(m_topo,U))
+    println("energy: $energy")
+    println("topo: $topo")
+
 
     pion = get_value(measure(m_pion,U))
     pion_s = get_value(measure(m_pion_Staggered,U))

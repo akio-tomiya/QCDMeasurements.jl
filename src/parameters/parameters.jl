@@ -81,3 +81,25 @@ Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     Nr = 10
     #smearing::Smearing_parameters = Stout_parameters()
 end
+
+Base.@kwdef mutable struct Energy_density_parameters <: Measurement_parameters
+    methodname::String = "Energy_density"
+    measure_every::Int64 = 10
+    fermiontype::String = "nothing"
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    #common::Measurement_common_parameters = Measurement_common_parameters()
+end
+
+Base.@kwdef mutable struct TopologicalCharge_parameters <: Measurement_parameters
+    methodname::String = "Topological_charge"
+    measure_every::Int64 = 10
+    fermiontype::String = "nothing"
+    #common::Measurement_common_parameters = Measurement_common_parameters()
+    #numflow::Int64 = 1 #number of flows
+    #Nflowsteps::Int64 = 1
+    #eps_flow::Float64 = 0.01
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    kinds_of_topological_charge::Vector{String} = ["plaquette","clover"]
+end
