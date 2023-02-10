@@ -29,3 +29,4 @@ end
 
 
 include("measure_plaquette.jl")
+include("measure_polyakov.jl")

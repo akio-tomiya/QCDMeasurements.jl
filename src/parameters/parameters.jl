@@ -8,3 +8,12 @@ Base.@kwdef mutable struct Plaq_parameters <: Measurement_parameters
     verbose_level::Int64 = 2
     printvalues::Bool = true
 end
+
+Base.@kwdef mutable struct Poly_parameters <: Measurement_parameters
+    methodname::String = "Polyakov_loop"
+    measure_every::Int64 = 10
+    fermiontype::String = "nothing"
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    #common::Measurement_common_parameters = Measurement_common_parameters()
+end
