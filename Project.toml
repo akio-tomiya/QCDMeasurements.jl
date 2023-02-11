@@ -1,6 +1,6 @@
 name = "QCDMeasurements"
 uuid = "15719ebc-80aa-4a1c-a78b-278b460177d7"
-authors = ["Yuki Nagai <cometscome@gmail.com> and contributors"]
+authors = ["Akio Tomiya, Yuki Nagai <cometscome@gmail.com> and contributors"]
 version = "0.1.0"
 
 [deps]
