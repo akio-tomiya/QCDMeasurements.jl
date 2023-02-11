@@ -26,6 +26,7 @@ This package has following functionarities
 # Sample
 
 ```julia
+using Gaugefields
 function test()
     println("SU3test")
     NX = 4
