@@ -11,7 +11,7 @@ mutable struct Energy_density_measurement{Dim,TG} <: AbstractMeasurement
         U::Vector{T};
         filename = nothing,
         verbose_level = 2,
-        printvalues = true,
+        printvalues = false,
     ) where {T}
         myrank = get_myrank(U)
 

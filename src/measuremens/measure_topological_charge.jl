@@ -12,7 +12,7 @@ mutable struct Topological_charge_measurement{Dim,TG} <: AbstractMeasurement
         U::Vector{T};
         filename = nothing,
         verbose_level = 2,
-        printvalues = true,
+        printvalues = false,
         TC_methods = ["plaquette"],
     ) where {T}
         myrank = get_myrank(U)

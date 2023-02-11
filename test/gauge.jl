@@ -10,18 +10,20 @@ function SU3test()
     NC = 3
 
     U = Initialize_4DGaugefields(NC,Nwing,NX,NY,NZ,NT,condition = "cold")
-    
+    #U = Initialize_Gaugefields(NC,Nwing,NX,NY,NZ,NT,condition = "hot",randomnumber="Reproducible")
+    filename = "testconf.txt"
+    L = [NX,NY,NZ,NT]
+    load_BridgeText!(filename,U,L,NC)
+    #=
     filename = "./conf_00000008.ildg"
     ildg = ILDG(filename)
     i = 1
     L = [NX,NY,NZ,NT]
     load_gaugefield!(U,i,ildg,L,NC)
+    =#
 
     m_plaq = Plaquette_measurement(U)
     m_poly = Polyakov_measurement(U)
-    m_pion = Pion_correlator_measurement(U)
-    m_pion_Staggered = Pion_correlator_measurement(U,fermiontype = "Staggered")
-    m_pion_Wilson = Pion_correlator_measurement(U,fermiontype = "Wilson")
 
     plaq = get_value(measure(m_plaq,U))
     poly = get_value(measure(m_poly,U))
@@ -35,7 +37,9 @@ function SU3test()
     println("energy: $energy")
     println("topo: $topo")
 
-
+    m_pion = Pion_correlator_measurement(U)
+    m_pion_Staggered = Pion_correlator_measurement(U,fermiontype = "Staggered")
+    m_pion_Wilson = Pion_correlator_measurement(U,fermiontype = "Wilson")
     pion = get_value(measure(m_pion,U))
     pion_s = get_value(measure(m_pion_Staggered,U))
     pion_w = get_value(measure(m_pion_Wilson,U))
