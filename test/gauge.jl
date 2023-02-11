@@ -56,6 +56,23 @@ function SU3test()
     println("Chiral condensate with Staggered fermion: $chiral_s")
     println("Chiral condensatewith  Wilson fermion: $chiral_w")
 
+    TC_methods = ["plaquette","clover"]
+    m_topo = Topological_charge_measurement(U,TC_methods = TC_methods)
+    g = Gradientflow(U)
+    for itrj=1:100
+        flow!(U,g)
+        @time plaq_t = get_value(measure(m_plaq,U))
+        @time poly = get_value(measure(m_poly,U))
+        println("$itrj plaq_t = $plaq_t")
+        println("$itrj polyakov loop = $(real(poly)) $(imag(poly))")
+
+        @time topo = get_value(measure(m_topo,U))
+        print("$itrj topological charge: ")
+        for (key,value) in topo
+            print("$key $value \t")
+        end
+        println("\t")
+    end
 
 
 end
