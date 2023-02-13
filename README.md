@@ -65,6 +65,10 @@ function test()
     println("energy: $energy")
     println("topo: $topo")
 
+    m_wilson = Wilson_loop_measurement(U,printvalues=true)
+    wilsonloop = get_value(measure(m_wilson,U))
+    println("wilson loop: ",wilsonloop)
+
     m_pion = Pion_correlator_measurement(U)
     m_pion_Staggered = Pion_correlator_measurement(U,fermiontype = "Staggered")
     m_pion_Wilson = Pion_correlator_measurement(U,fermiontype = "Wilson")
