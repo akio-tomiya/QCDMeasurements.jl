@@ -14,6 +14,7 @@ function SU3test()
     filename = "testconf.txt"
     L = [NX,NY,NZ,NT]
     load_BridgeText!(filename,U,L,NC)
+    
     #=
     filename = "./conf_00000008.ildg"
     ildg = ILDG(filename)
@@ -21,6 +22,7 @@ function SU3test()
     L = [NX,NY,NZ,NT]
     load_gaugefield!(U,i,ildg,L,NC)
     =#
+    
 
     m_plaq = Plaquette_measurement(U)
     m_poly = Polyakov_measurement(U)
@@ -29,6 +31,11 @@ function SU3test()
     poly = get_value(measure(m_poly,U))
     println("plaq: $plaq")
     println("poly: $poly")
+
+    m_wilson = Wilson_loop_measurement(U)
+    wilsonloop = get_value(measure(m_wilson,U))
+    println("wilson loop: ",wilsonloop)
+    #return
 
     m_energy = Energy_density_measurement(U)
     m_topo = Topological_charge_measurement(U)
