@@ -14,6 +14,7 @@ module QCDMeasurements
     export Chiral_condensate_measurement
     export Energy_density_measurement
     export Topological_charge_measurement
+    export Wilson_loop_measurement
 
 # Write your package code here.
 
