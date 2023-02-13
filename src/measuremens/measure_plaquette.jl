@@ -1,3 +1,33 @@
+"""
+Struct for measuring the plaquette values. 
+
+# Constructor
+
+    Plaquette_measurement(
+        U::Vector{T};
+        filename = nothing,
+        verbose_level = 2,
+        printvalues = false,
+    )
+
+## Arguments
+- `U<:AbstractGaugefields`: The gauge fields 
+- `filename::Union{String,Nothing}=nothing`: The filename of the output data if ```printvalues = true```.
+- `verbose_level<:Int = 2` :Verbose level for printing
+- `printvalues::Bool = false` : The values are printed during the measurement if ```printvalue = true```.
+
+
+## Examples
+```julia
+plaq_m = Plaquette_measurement(U,filename="test.txt",printvalue=true)
+```
+
+# Functions
+    measure(m::Plaquette_measurement, U; additional_string = "")
+
+```additional_string``` is a header for the printed values if ```m.printvalue = true```. 
+
+""" 
 mutable struct Plaquette_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
     _temporary_gaugefields::Vector{TG}
@@ -6,8 +36,6 @@ mutable struct Plaquette_measurement{Dim,TG} <: AbstractMeasurement
     verbose_print::Union{Verbose_print,Nothing}
     printvalues::Bool
 
-
-    
     function Plaquette_measurement(
         U::Vector{T};
         filename = nothing,
