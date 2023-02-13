@@ -32,7 +32,7 @@ function SU3test()
     println("plaq: $plaq")
     println("poly: $poly")
 
-    m_wilson = Wilson_loop_measurement(U)
+    m_wilson = Wilson_loop_measurement(U,printvalues=true)
     wilsonloop = get_value(measure(m_wilson,U))
     println("wilson loop: ",wilsonloop)
     #return

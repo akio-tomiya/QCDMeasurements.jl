@@ -59,7 +59,7 @@ mutable struct Topological_charge_measurement{Dim,TG} <: AbstractMeasurement
 end
 
 function Topological_charge_measurement(
-    U::Vector{T},params::TopologicalCharge_parameters,filename
+    U::Vector{T},params::TopologicalCharge_parameters,filename="Topological_charge.txt"
 ) where {T}
 
     return Topological_charge_measurement(

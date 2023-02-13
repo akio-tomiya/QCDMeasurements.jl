@@ -90,7 +90,7 @@ end
 
 function Plaquette_measurement(
     U::Vector{T},params::Plaq_parameters,
-    filename
+    filename = "Plaquette.txt"
 ) where {T}
     return Plaquette_measurement(U,filename=filename,verbose_level=params.verbose_level,printvalues=params.printvalues)
 end

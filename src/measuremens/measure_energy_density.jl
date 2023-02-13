@@ -52,7 +52,7 @@ mutable struct Energy_density_measurement{Dim,TG} <: AbstractMeasurement
 end
 
 function Energy_density_measurement(
-    U,params,filename
+    U,params,filename = "Energy_density.txt"
 ) where {T}
 
     return Energy_density_measurement(

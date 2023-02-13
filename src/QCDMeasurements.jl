@@ -15,6 +15,9 @@ module QCDMeasurements
     export Energy_density_measurement
     export Topological_charge_measurement
     export Wilson_loop_measurement
+    #export construct_Measurement_parameters_from_dict
+    export prepare_measurement_from_dict
+    #export initialize_fermion_parameters
 
 # Write your package code here.
 

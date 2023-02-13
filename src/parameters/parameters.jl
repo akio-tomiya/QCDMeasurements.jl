@@ -1,3 +1,5 @@
+struct2dict(x::T) where {T} = Dict{String,Any}(string(fn) => getfield(x, fn) for fn ∈ fieldnames(T))
+
 abstract type Fermion_parameters end
 
 Base.@kwdef mutable struct Quench_parameters <: Fermion_parameters
@@ -25,6 +27,22 @@ Base.@kwdef mutable struct Domainwall_parameters <: Fermion_parameters
     m::Float64 = 0.1 #physical mass
 end
 
+function initialize_fermion_parameters(fermion_type)
+    if fermion_type == "nothing"
+        fermion_parameter = Quench_parameters()
+    elseif fermion_type == "Wilson" || fermion_type == "WilsonClover"
+        fermion_parameter = Wilson_parameters()
+    elseif fermion_type == "Staggered"
+        fermion_parameter = Staggered_parameters()
+    elseif fermion_type == "Domainwall"
+        fermion_parameter = Domainwall_parameters()
+    else
+        @error "$fermion_type is not implemented in parameters.jl"
+    end
+    return fermion_parameter
+end
+
+
 
 abstract type Measurement_parameters end
 
@@ -42,6 +60,17 @@ Base.@kwdef mutable struct Poly_parameters <: Measurement_parameters
     verbose_level::Int64 = 2
     printvalues::Bool = true
     #common::Measurement_common_parameters = Measurement_common_parameters()
+end
+
+
+Base.@kwdef mutable struct Wilson_loop_parameters <: Measurement_parameters
+    #common::Measurement_common_parameters = Measurement_common_parameters()
+    methodname::String = "Wilson_loop"
+    fermiontype::String = "nothing"
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    Tmax::Int64 = 4
+    Rmax::Int64 = 4
 end
 
 Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
@@ -99,4 +128,113 @@ Base.@kwdef mutable struct TopologicalCharge_parameters <: Measurement_parameter
     verbose_level::Int64 = 2
     printvalues::Bool = true
     kinds_of_topological_charge::Vector{String} = ["plaquette","clover"]
+end
+
+function initialize_measurement_parameters(methodname)
+    if methodname == "Plaquette"
+        method = Plaq_parameters()
+    elseif methodname == "Polyakov_loop"
+        method = Poly_parameters()
+    elseif methodname == "Topological_charge"
+        method = TopologicalCharge_parameters()
+    elseif methodname == "Chiral_condensate"
+        method = ChiralCondensate_parameters()
+    elseif methodname == "Pion_correlator"
+        method = Pion_parameters()
+    elseif methodname == "Energy_density"
+        method = Energy_density_parameters()
+    elseif methodname == "Wilson_loop"
+        method = Wilson_loop_parameters()
+    else
+        @error "$methodname is not implemented in parameter_structs.jl"
+    end
+    return method
+end
+
+function prepare_measurement_from_dict(U,value_i::Dict,filename="")
+    parameters = construct_Measurement_parameters_from_dict(value_i)
+    return prepare_measurement(U,parameters,filename)
+end
+
+
+function construct_Measurement_parameters_from_dict(value_i::Dict)
+    #println(value)
+    @assert haskey(value_i, "methodname") "methodname should be set in measurement."
+    methodname = value_i["methodname"]
+    method = initialize_measurement_parameters(methodname)
+    method_dict = struct2dict(method)
+    #println("value_i ",value_i)
+    if haskey(value_i, "Dirac_operator")
+        fermiontype = value_i["Dirac_operator"]
+    else
+        if haskey(value_i, "fermiontype")
+            if value_i["fermiontype"] == nothing
+                fermiontype = method.fermiontype
+                #fermiontype = "nothing"
+            else
+                fermiontype = value_i["fermiontype"]
+            end
+        else
+            fermiontype = method.fermiontype
+            #fermiontype = "nothing"
+        end
+    end
+    #println("fermiontype $fermiontype")
+    fermion_parameters = initialize_fermion_parameters(fermiontype)
+    fermion_parameters_dict = struct2dict(fermion_parameters)
+    #println("femriontype ",fermiontype)
+
+    for (key_ii, value_ii) in value_i
+        #println("$key_ii $value_ii")
+        if haskey(method_dict, key_ii)
+            if typeof(value_ii) != Nothing
+                keytype = typeof(getfield(method, Symbol(key_ii)))
+                setfield!(method, Symbol(key_ii), keytype(value_ii))
+            end
+        else
+            if haskey(fermion_parameters_dict, key_ii)
+                #println("fermion $key_ii $value_ii")
+                keytype = typeof(getfield(fermion_parameters, Symbol(key_ii)))
+                setfield!(fermion_parameters, Symbol(key_ii), keytype(value_ii))
+            else
+                @warn "$key_ii is not found! in $(typeof(method))"
+            end
+        end
+    end
+
+    if haskey(method_dict, "fermion_parameters")
+        setfield!(method, Symbol("fermion_parameters"), fermion_parameters)
+    end
+    value_out = deepcopy(method)
+
+    return value_out
+end
+
+function prepare_measurement(U,measurement_parameters::T,filename="") where T
+    if T == Plaq_parameters
+        filename_input = ifelse(filename=="","Plaquette.txt",filename)
+        measurement = Plaquette_measurement(U,measurement_parameters,filename_input)
+    elseif T == Poly_parameters
+        filename_input = ifelse(filename=="","Polyakov_loop.txt",filename)
+        measurement = Polyakov_measurement(U,measurement_parameters,filename_input )
+    elseif T == TopologicalCharge_parameters
+        filename_input = ifelse(filename=="","Topological_charge.txt",filename)
+        measurement = Topological_charge_measurement(U,measurement_parameters,filename_input)
+    elseif T == ChiralCondensate_parameters
+        filename_input = ifelse(filename=="","Chiral_condensate.txt",filename)
+        measurement = Chiral_condensate_measurement(U,measurement_parameters,filename_input)
+    elseif T == Pion_parameters
+        filename_input = ifelse(filename=="","Pion_correlator.txt",filename)
+        #println(measurement_parameters)
+        measurement = Pion_correlator_measurement(U,measurement_parameters,filename_input)
+    elseif T == Energy_density_parameters
+        filename_input = ifelse(filename=="","Energy_density.txt",filename)
+        measurement = Energy_density_measurement(U,measurement_parameters,filename_input)
+    elseif T == Wilson_loop_parameters
+        filename_input = ifelse(filename=="","Wilson_loop.txt",filename)
+        measurement = Wilson_loop_measurement(U,measurement_parameters,filename_input)
+    else
+        error(T, " is not supported in measurements")
+    end
+    return measurement
 end

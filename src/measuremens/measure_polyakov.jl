@@ -42,7 +42,7 @@ mutable struct Polyakov_measurement{Dim,TG} <: AbstractMeasurement
 end
 
 function Polyakov_measurement(
-    U::Vector{T},params::Poly_parameters,filename
+    U::Vector{T},params::Poly_parameters,filename = "Polyakov.txt"
 ) where {T}
     return Polyakov_measurement(U,filename=filename,verbose_level=params.verbose_level,printvalues=params.printvalues)
 end
@@ -57,7 +57,7 @@ function measure(m::M, U; additional_string = "") where {M<:Polyakov_measurement
 
     if m.printvalues
         #println_verbose_level2(U[1],"-----------------")
-        measurestring = "$itrj $additional_string $(real(poly)) $(imag(poly)) # poly"
+        measurestring = "$additional_string $(real(poly)) $(imag(poly)) # poly"
         println_verbose_level2(
             m.verbose_print,
             measurestring,

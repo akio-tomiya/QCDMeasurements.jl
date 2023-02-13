@@ -133,7 +133,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
 end
 
 function Chiral_condensate_measurement(
-    U::Vector{T},params::ChiralCondensate_parameters,filename
+    U::Vector{T},params::ChiralCondensate_parameters,filename="Chiral_condensate.txt"
 ) where {T}
     if params.fermiontype == "Staggered"
         method = Chiral_condensate_measurement(

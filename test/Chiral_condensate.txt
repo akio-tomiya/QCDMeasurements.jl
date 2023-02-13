@@ -1,0 +1,11 @@
+# 1  1.1310893017744117 # itrj irand chiralcond
+# 2  1.1314985521826937 # itrj irand chiralcond
+# 3  1.1697876069831876 # itrj irand chiralcond
+# 4  1.1824511594286864 # itrj irand chiralcond
+# 5  1.12121461759895 # itrj irand chiralcond
+# 6  1.192023262936087 # itrj irand chiralcond
+# 7  1.1939811865452716 # itrj irand chiralcond
+# 8  1.2296219359621634 # itrj irand chiralcond
+# 9  1.0989310718131318 # itrj irand chiralcond
+# 10  1.13657456549616 # itrj irand chiralcond
+1.158717326072074 # pbp Nr=10

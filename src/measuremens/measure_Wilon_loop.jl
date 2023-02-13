@@ -8,7 +8,7 @@ mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
     printvalues::Bool
     Tmax::Int64
     Rmax::Int64
-    outputvalues::Matrix{ComplexF64}
+    outputvalues::Matrix{Float64}
     wilsonloops::Matrix{Matrix{Vector{Wilsonline{Dim}}}}
 
 
@@ -61,7 +61,7 @@ mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
 end
 
 function Wilson_loop_measurement(
-    U::Vector{T},params::Poly_parameters,filename
+    U::Vector{T},params::Wilson_loop_parameters,filename = "Wilson_loop.txt"
 ) where {T}
     return Wilson_loop_measurement(U,filename=filename,verbose_level=params.verbose_level,printvalues=params.printvalues)
 end
@@ -87,7 +87,7 @@ function measure(m::Wilson_loop_measurement{Dim,TG}, U; additional_string = "") 
                 W += tr(Wmat[μ,ν])
             end
             NDir = 3.0 # in 4 diemension, 3 associated staples. t-x plane, t-y plane, t-z plane
-            WL = W/NV/NDir/NC
+            WL = real(W)/NV/NDir/NC
             m.outputvalues[T,R] = WL
 
             if m.printvalues

@@ -131,7 +131,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
 
 end
 
-function Pion_correlator_measurement(U::Vector{T},params::Pion_parameters,filename
+function Pion_correlator_measurement(U::Vector{T},params::Pion_parameters,filename = "Pion_correlator.txt"
 ) where {T}
 
     if params.smearing_for_fermion != "nothing"
@@ -179,6 +179,8 @@ function Pion_correlator_measurement(U::Vector{T},params::Pion_parameters,filena
             eps_CG = params.eps,
             MaxCGstep = params.MaxCGstep
         )
+    else
+        error("fermiontype = $(params.fermiontype) is not supported")
     end
 
     return method
