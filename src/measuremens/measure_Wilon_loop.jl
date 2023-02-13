@@ -80,7 +80,7 @@ function measure(m::Wilson_loop_measurement{Dim,TG}, U; additional_string = "") 
         for R=1:m.Rmax
             Wmat = m._temporary_gaugefields_mat
             Wloops = m.wilsonloops[T,R]
-            calc_large_wiloson_loop!(Wmat,Wloops,U,temps)
+            calc_large_wiloson_loop!(Wmat,Wloops,U,temps,Dim)
             W = 0.0im
             for μ=1:Dim-1 # spatial directions
                 ν=Dim  # T-direction is not summed over
@@ -158,8 +158,8 @@ function make_Wilson_loop(Lt,Ls,Dim)
         +--+ → μ=1,2,3 (averaged)
     =#
     Wmatset= Array{Vector{Wilsonline{Dim}},2}(undef,4,4)
-    for μ=1:3 # spatial directions
-        ν=4 # T-direction is not summed over
+    for μ=1:Dim-1 # spatial directions
+        ν=Dim # T-direction is not summed over
         loops = Wilsonline{Dim}[]
         #loops = Wilson_loop_set()
         loop = Wilsonline([(μ,Ls),(ν,Lt),(μ,-Ls),(ν,-Lt)])
@@ -168,10 +168,10 @@ function make_Wilson_loop(Lt,Ls,Dim)
     end
     return Wmatset
 end
-function calc_large_wiloson_loop!(temp_Wmat,loops_μν,U,temps)
+function calc_large_wiloson_loop!(temp_Wmat,loops_μν,U,temps,Dim)
     W = temp_Wmat
-    for μ=1:3 # spatial directions
-        ν=4 # T-direction is not summed over
+    for μ=1:Dim-1 # spatial directions
+        ν=Dim # T-direction is not summed over
         evaluate_gaugelinks!(W[μ,ν], loops_μν[μ, ν], U, temps[1:2])
     end
     return 
