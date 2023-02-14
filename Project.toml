@@ -1,7 +1,7 @@
 name = "QCDMeasurements"
 uuid = "15719ebc-80aa-4a1c-a78b-278b460177d7"
 authors = ["Akio Tomiya, Yuki Nagai <cometscome@gmail.com> and contributors"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 Gaugefields = "a461e10c-0d91-493e-bc41-027b226eee91"
