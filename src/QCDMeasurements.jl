@@ -8,7 +8,7 @@ module QCDMeasurements
     include("parameters/parameters.jl")
     include("measuremens/AbstractMeasurement.jl")
 
-    export Plaquette_measurement,measure,get_value
+    export Plaquette_measurement,measure,get_value,get_string
     export Polyakov_measurement
     export Pion_correlator_measurement
     export Chiral_condensate_measurement
