@@ -59,15 +59,17 @@ mutable struct Topological_charge_measurement{Dim,TG} <: AbstractMeasurement
 end
 
 function Topological_charge_measurement(
-    U::Vector{T},params::TopologicalCharge_parameters,filename="Topological_charge.txt"
+    U::Vector{T},
+    params::TopologicalCharge_parameters,
+    filename = "Topological_charge.txt",
 ) where {T}
 
     return Topological_charge_measurement(
-    U,
-    filename = filename,
-    verbose_level = params.verbose_level,
-    printvalues = params.printvalues,
-    TC_methods = params.kinds_of_topological_charge #["plaquette"]
+        U,
+        filename = filename,
+        verbose_level = params.verbose_level,
+        printvalues = params.printvalues,
+        TC_methods = params.kinds_of_topological_charge, #["plaquette"]
     )
 
 end
@@ -91,15 +93,15 @@ function measure(
         if methodname == "plaquette"
             Qplaq = calculate_topological_charge_plaq(U, m.temp_UμνTA, temps)
             push!(values, real(Qplaq))
-            valuedic[ "plaquette"] = real(Qplaq)
+            valuedic["plaquette"] = real(Qplaq)
         elseif methodname == "clover"
             Qclover = calculate_topological_charge_clover(U, m.temp_UμνTA, temps)
             push!(values, real(Qclover))
-            valuedic[ "clover"] = real(Qclover)
+            valuedic["clover"] = real(Qclover)
             Qimproved =
                 calculate_topological_charge_improved(U, m.temp_UμνTA, Qclover, temps)
             push!(values, real(Qimproved))
-            valuedic[ "clover improved"] = real(Qimproved)
+            valuedic["clover improved"] = real(Qimproved)
         else
             error("method $methodname is not supported in topological charge measurement")
         end
@@ -128,7 +130,7 @@ function measure(
         #println_verbose_level2(U[1],"-----------------")
     end
 
-    output = Measurement_output(valuedic,measurestring)
+    output = Measurement_output(valuedic, measurestring)
 
     return output
 end

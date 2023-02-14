@@ -18,7 +18,7 @@ mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
         verbose_level = 2,
         printvalues = false,
         Tmax = 4,
-        Rmax = 4
+        Rmax = 4,
     ) where {TG}
         myrank = get_myrank(U)
 
@@ -28,80 +28,99 @@ mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
             verbose_print = nothing
         end
         Dim = length(U)
-    
-    
+
+
         numg = 2
-        _temporary_gaugefields = Vector{TG}(undef,numg)
-        for i=1:numg
-            _temporary_gaugefields[i] =  similar(U[1])
+        _temporary_gaugefields = Vector{TG}(undef, numg)
+        for i = 1:numg
+            _temporary_gaugefields[i] = similar(U[1])
         end
 
-        _temporary_gaugefields_mat = Matrix{TG}(undef, Dim,Dim)
-        for μ=1:Dim
-            for ν=1:Dim
-                _temporary_gaugefields_mat[ν,μ] = similar(U[1])
+        _temporary_gaugefields_mat = Matrix{TG}(undef, Dim, Dim)
+        for μ = 1:Dim
+            for ν = 1:Dim
+                _temporary_gaugefields_mat[ν, μ] = similar(U[1])
             end
         end
-        wilsonloops = Matrix{Matrix{Vector{Wilsonline{Dim}}}}(undef,Tmax,Rmax)
+        wilsonloops = Matrix{Matrix{Vector{Wilsonline{Dim}}}}(undef, Tmax, Rmax)
 
-        for T=1:Tmax
-            for R=1:Rmax
-                Wloops = make_Wilson_loop(T,R,Dim)
-                wilsonloops[T,R] = Wloops 
+        for T = 1:Tmax
+            for R = 1:Rmax
+                Wloops = make_Wilson_loop(T, R, Dim)
+                wilsonloops[T, R] = Wloops
             end
         end
 
-        outputvalues = zeros(Float64,Tmax,Rmax)
-    
-        return new{Dim,TG}(filename, _temporary_gaugefields,
-            _temporary_gaugefields_mat, Dim, verbose_print, 
-            printvalues,Tmax,Rmax,outputvalues,wilsonloops)
-    
+        outputvalues = zeros(Float64, Tmax, Rmax)
+
+        return new{Dim,TG}(
+            filename,
+            _temporary_gaugefields,
+            _temporary_gaugefields_mat,
+            Dim,
+            verbose_print,
+            printvalues,
+            Tmax,
+            Rmax,
+            outputvalues,
+            wilsonloops,
+        )
+
     end
 end
 
 function Wilson_loop_measurement(
-    U::Vector{T},params::Wilson_loop_parameters,filename = "Wilson_loop.txt"
+    U::Vector{T},
+    params::Wilson_loop_parameters,
+    filename = "Wilson_loop.txt",
 ) where {T}
-    return Wilson_loop_measurement(U,filename=filename,verbose_level=params.verbose_level,printvalues=params.printvalues)
+    return Wilson_loop_measurement(
+        U,
+        filename = filename,
+        Tmax = params.Tmax,
+        Rmax = params.Rmax,
+        verbose_level = params.verbose_level,
+        printvalues = params.printvalues,
+    )
 end
 
 
 
 
-function measure(m::Wilson_loop_measurement{Dim,TG}, U; additional_string = "") where {Dim,TG}
+function measure(
+    m::Wilson_loop_measurement{Dim,TG},
+    U;
+    additional_string = "",
+) where {Dim,TG}
     temps = get_temporary_gaugefields(m)
-    NC,_,NN... = size(U[1])
+    NC, _, NN... = size(U[1])
     NV = prod(NN)
-    measurestring=""
+    measurestring = ""
 
 
-    for T=1:m.Tmax
-        for R=1:m.Rmax
+    for T = 1:m.Tmax
+        for R = 1:m.Rmax
             Wmat = m._temporary_gaugefields_mat
-            Wloops = m.wilsonloops[T,R]
-            calc_large_wiloson_loop!(Wmat,Wloops,U,temps,Dim)
+            Wloops = m.wilsonloops[T, R]
+            calc_large_wiloson_loop!(Wmat, Wloops, U, temps, Dim)
             W = 0.0im
-            for μ=1:Dim-1 # spatial directions
-                ν=Dim  # T-direction is not summed over
-                W += tr(Wmat[μ,ν])
+            for μ = 1:Dim-1 # spatial directions
+                ν = Dim  # T-direction is not summed over
+                W += tr(Wmat[μ, ν])
             end
             NDir = 3.0 # in 4 diemension, 3 associated staples. t-x plane, t-y plane, t-z plane
-            WL = real(W)/NV/NDir/NC
-            m.outputvalues[T,R] = WL
+            WL = real(W) / NV / NDir / NC
+            m.outputvalues[T, R] = WL
 
             if m.printvalues
                 measurestring = " $additional_string $T $R $WL # Wilson_loops # T R W(T,R)"
-                println_verbose_level2(
-                    m.verbose_print,
-                    measurestring,
-                )
+                println_verbose_level2(m.verbose_print, measurestring)
             end
         end
     end
 
 
-    output = Measurement_output(m.outputvalues,measurestring)
+    output = Measurement_output(m.outputvalues, measurestring)
 
     return output
 end
@@ -146,7 +165,7 @@ function calc_large_wiloson_loop!(Wmat,Lt,Ls,U)
     return 
 end
 =#
-function make_Wilson_loop(Lt,Ls,Dim)
+function make_Wilson_loop(Lt, Ls, Dim)
     #= Making a Wilson loop operator for potential calculations
         Ls × Lt
         ν=4
@@ -157,22 +176,22 @@ function make_Wilson_loop(Lt,Ls,Dim)
         |  |
         +--+ → μ=1,2,3 (averaged)
     =#
-    Wmatset= Array{Vector{Wilsonline{Dim}},2}(undef,4,4)
-    for μ=1:Dim-1 # spatial directions
-        ν=Dim # T-direction is not summed over
+    Wmatset = Array{Vector{Wilsonline{Dim}},2}(undef, 4, 4)
+    for μ = 1:Dim-1 # spatial directions
+        ν = Dim # T-direction is not summed over
         loops = Wilsonline{Dim}[]
         #loops = Wilson_loop_set()
-        loop = Wilsonline([(μ,Ls),(ν,Lt),(μ,-Ls),(ν,-Lt)])
-        push!(loops,loop)
-        Wmatset[μ,ν] = loops
+        loop = Wilsonline([(μ, Ls), (ν, Lt), (μ, -Ls), (ν, -Lt)])
+        push!(loops, loop)
+        Wmatset[μ, ν] = loops
     end
     return Wmatset
 end
-function calc_large_wiloson_loop!(temp_Wmat,loops_μν,U,temps,Dim)
+function calc_large_wiloson_loop!(temp_Wmat, loops_μν, U, temps, Dim)
     W = temp_Wmat
-    for μ=1:Dim-1 # spatial directions
-        ν=Dim # T-direction is not summed over
-        evaluate_gaugelinks!(W[μ,ν], loops_μν[μ, ν], U, temps[1:2])
+    for μ = 1:Dim-1 # spatial directions
+        ν = Dim # T-direction is not summed over
+        evaluate_gaugelinks!(W[μ, ν], loops_μν[μ, ν], U, temps[1:2])
     end
-    return 
+    return
 end

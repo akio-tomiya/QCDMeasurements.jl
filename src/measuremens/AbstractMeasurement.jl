@@ -11,11 +11,11 @@ end
 struct Measurement_output{T}
     value::T
     outputstring::String
-    Measurement_output(value,st) = new{typeof(value)}(value,st)
+    Measurement_output(value, st) = new{typeof(value)}(value, st)
 end
 
 function get_value(m::Measurement_output)
-    return m.value 
+    return m.value
 end
 
 function get_string(m::Measurement_output)

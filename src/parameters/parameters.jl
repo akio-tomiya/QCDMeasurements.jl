@@ -1,4 +1,5 @@
-struct2dict(x::T) where {T} = Dict{String,Any}(string(fn) => getfield(x, fn) for fn ∈ fieldnames(T))
+struct2dict(x::T) where {T} =
+    Dict{String,Any}(string(fn) => getfield(x, fn) for fn ∈ fieldnames(T))
 
 abstract type Fermion_parameters end
 
@@ -131,7 +132,7 @@ Base.@kwdef mutable struct TopologicalCharge_parameters <: Measurement_parameter
     #eps_flow::Float64 = 0.01
     verbose_level::Int64 = 2
     printvalues::Bool = true
-    kinds_of_topological_charge::Vector{String} = ["plaquette","clover"]
+    kinds_of_topological_charge::Vector{String} = ["plaquette", "clover"]
 end
 
 function initialize_measurement_parameters(methodname)
@@ -155,9 +156,9 @@ function initialize_measurement_parameters(methodname)
     return method
 end
 
-function prepare_measurement_from_dict(U,value_i::Dict,filename="")
+function prepare_measurement_from_dict(U, value_i::Dict, filename = "")
     parameters = construct_Measurement_parameters_from_dict(value_i)
-    return prepare_measurement(U,parameters,filename)
+    return prepare_measurement(U, parameters, filename)
 end
 
 
@@ -214,29 +215,31 @@ function construct_Measurement_parameters_from_dict(value_i::Dict)
     return value_out
 end
 
-function prepare_measurement(U,measurement_parameters::T,filename="") where T
+function prepare_measurement(U, measurement_parameters::T, filename = "") where {T}
     if T == Plaq_parameters
-        filename_input = ifelse(filename=="","Plaquette.txt",filename)
-        measurement = Plaquette_measurement(U,measurement_parameters,filename_input)
+        filename_input = ifelse(filename == "", "Plaquette.txt", filename)
+        measurement = Plaquette_measurement(U, measurement_parameters, filename_input)
     elseif T == Poly_parameters
-        filename_input = ifelse(filename=="","Polyakov_loop.txt",filename)
-        measurement = Polyakov_measurement(U,measurement_parameters,filename_input )
+        filename_input = ifelse(filename == "", "Polyakov_loop.txt", filename)
+        measurement = Polyakov_measurement(U, measurement_parameters, filename_input)
     elseif T == TopologicalCharge_parameters
-        filename_input = ifelse(filename=="","Topological_charge.txt",filename)
-        measurement = Topological_charge_measurement(U,measurement_parameters,filename_input)
+        filename_input = ifelse(filename == "", "Topological_charge.txt", filename)
+        measurement =
+            Topological_charge_measurement(U, measurement_parameters, filename_input)
     elseif T == ChiralCondensate_parameters
-        filename_input = ifelse(filename=="","Chiral_condensate.txt",filename)
-        measurement = Chiral_condensate_measurement(U,measurement_parameters,filename_input)
+        filename_input = ifelse(filename == "", "Chiral_condensate.txt", filename)
+        measurement =
+            Chiral_condensate_measurement(U, measurement_parameters, filename_input)
     elseif T == Pion_parameters
-        filename_input = ifelse(filename=="","Pion_correlator.txt",filename)
+        filename_input = ifelse(filename == "", "Pion_correlator.txt", filename)
         #println(measurement_parameters)
-        measurement = Pion_correlator_measurement(U,measurement_parameters,filename_input)
+        measurement = Pion_correlator_measurement(U, measurement_parameters, filename_input)
     elseif T == Energy_density_parameters
-        filename_input = ifelse(filename=="","Energy_density.txt",filename)
-        measurement = Energy_density_measurement(U,measurement_parameters,filename_input)
+        filename_input = ifelse(filename == "", "Energy_density.txt", filename)
+        measurement = Energy_density_measurement(U, measurement_parameters, filename_input)
     elseif T == Wilson_loop_parameters
-        filename_input = ifelse(filename=="","Wilson_loop.txt",filename)
-        measurement = Wilson_loop_measurement(U,measurement_parameters,filename_input)
+        filename_input = ifelse(filename == "", "Wilson_loop.txt", filename)
+        measurement = Wilson_loop_measurement(U, measurement_parameters, filename_input)
     else
         error(T, " is not supported in measurements")
     end
