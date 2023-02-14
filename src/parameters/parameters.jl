@@ -52,6 +52,7 @@ Base.@kwdef mutable struct Plaq_parameters <: Measurement_parameters
     fermiontype::String = "nothing"
     verbose_level::Int64 = 2
     printvalues::Bool = true
+    measure_every::Int64 = 1
 end
 
 Base.@kwdef mutable struct Poly_parameters <: Measurement_parameters
@@ -59,6 +60,7 @@ Base.@kwdef mutable struct Poly_parameters <: Measurement_parameters
     fermiontype::String = "nothing"
     verbose_level::Int64 = 2
     printvalues::Bool = true
+    measure_every::Int64 = 1
     #common::Measurement_common_parameters = Measurement_common_parameters()
 end
 
@@ -71,11 +73,13 @@ Base.@kwdef mutable struct Wilson_loop_parameters <: Measurement_parameters
     printvalues::Bool = true
     Tmax::Int64 = 4
     Rmax::Int64 = 4
+    measure_every::Int64 = 10
 end
 
 Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
     #common::Measurement_common_parameters = Measurement_common_parameters()
     methodname::String = "Pion_correlator"
+    measure_every::Int64 = 10
     fermiontype::String = "Wilson"
     eps::Float64 = 1e-19
     MaxCGstep::Int64 = 3000
@@ -92,7 +96,7 @@ end
 Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     #common::Measurement_common_parameters = Measurement_common_parameters()
     methodname::String = "Chiral_condensate"
-    #measure_every::Int64 = 10
+    measure_every::Int64 = 10
     fermiontype::String = "Staggered"
     Nf::Int64 = 4
     eps::Float64 = 1e-19
@@ -110,7 +114,7 @@ end
 
 Base.@kwdef mutable struct Energy_density_parameters <: Measurement_parameters
     methodname::String = "Energy_density"
-    #measure_every::Int64 = 10
+    measure_every::Int64 = 10
     fermiontype::String = "nothing"
     verbose_level::Int64 = 2
     printvalues::Bool = true
@@ -119,7 +123,7 @@ end
 
 Base.@kwdef mutable struct TopologicalCharge_parameters <: Measurement_parameters
     methodname::String = "Topological_charge"
-    #measure_every::Int64 = 10
+    measure_every::Int64 = 10
     fermiontype::String = "nothing"
     #common::Measurement_common_parameters = Measurement_common_parameters()
     #numflow::Int64 = 1 #number of flows
