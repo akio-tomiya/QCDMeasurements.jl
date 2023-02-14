@@ -1,7 +1,7 @@
 name = "QCDMeasurements"
 uuid = "15719ebc-80aa-4a1c-a78b-278b460177d7"
 authors = ["Akio Tomiya, Yuki Nagai <cometscome@gmail.com> and contributors"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Gaugefields = "a461e10c-0d91-493e-bc41-027b226eee91"
@@ -11,9 +11,9 @@ Wilsonloop = "f3c8d4fe-2f22-401d-8228-e6a01d7a1d02"
 
 [compat]
 julia = "1.6"
-LatticeDiracOperators = "0.1.5"
+LatticeDiracOperators = "0.2"
 Wilsonloop = "0.1.3"
-Gaugefields = "0.1.19"
+Gaugefields = "0.2"
 
 
 [extras]
