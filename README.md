@@ -27,6 +27,7 @@ This package has following functionarities
 # Sample
 
 ```julia
+using QCDMeasurements
 using Gaugefields
 function test()
     println("SU3test")
@@ -115,6 +116,7 @@ test()
 You can also use the dictionary type. 
 
 ```julia
+using QCDMeasurements
 using Gaugefields
 function SU3test()
     println("SU3test")
