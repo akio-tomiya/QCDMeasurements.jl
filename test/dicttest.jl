@@ -22,6 +22,18 @@ function SU3test()
     L = [NX,NY,NZ,NT]
     load_gaugefield!(U,i,ildg,L,NC)
     =#
+    
+    method = Dict()
+    methodname = "Eigenvalue"
+    method["methodname"] = methodname
+    method["fermiontype"] = "Wilson"
+    κ = 0.141139
+    method["hop"] =  κ
+    method["nev"] = 1 #number of eigenvalues
+    m = prepare_measurement_from_dict(U,method)
+    value,vectors = get_value(measure(m,U)) #eigenvalues and eigenvectors
+    println("$methodname $value")
+    
 
     method = Dict()
     methodname = "Pion_correlator"
@@ -44,13 +56,17 @@ function SU3test()
 
 
     methodsname = ["Plaquette","Polyakov_loop","Topological_charge","Chiral_condensate",
-            "Pion_correlator","Energy_density","Wilson_loop"]
+            "Pion_correlator","Energy_density","Wilson_loop","Eigenvalue"]
     method = Dict()
     for methodname in methodsname
         method["methodname"] = methodname
         m = prepare_measurement_from_dict(U,method)
         value = get_value(measure(m,U))
-        println("$methodname $value")
+        if methodname == "Eigenvalue"
+            println("$methodname $(value[1])")
+        else
+            println("$methodname $(value)")
+        end
     end
 
 end

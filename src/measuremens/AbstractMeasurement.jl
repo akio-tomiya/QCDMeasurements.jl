@@ -37,3 +37,5 @@ include("measure_chiral_condensate.jl")
 include("measure_energy_density.jl")
 include("measure_topological_charge.jl")
 include("measure_Wilon_loop.jl")
+include("measure_eigenvalues.jl")
+
