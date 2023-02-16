@@ -42,7 +42,14 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
             boundarycondition = BoundaryCondition
         end
         #println(boundarycondition)
-
+        params,parameters_action,x,factor = make_fermionparameter_dict(U,
+            fermiontype,mass,
+            Nf,
+            κ,
+            r,
+            L5,
+            M,
+    )        #=
         params = Dict()
         parameters_action = Dict()
         if fermiontype == "Staggered"
@@ -71,6 +78,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
                 "fermion type $fermiontype is not supported in chiral condensate measurement",
             )
         end
+        =#
 
         Nspinor = ifelse(fermiontype == "Staggered", 1, 4)
 
@@ -141,11 +149,14 @@ function Pion_correlator_measurement(
         error("smearing is not implemented in Pion correlator")
     end
 
+    params_tuple = fermionparameter_params(params)
+
     fermionparameters = params.fermion_parameters
     if params.fermiontype == "Staggered"
         method = Pion_correlator_measurement(
             U;
-            filename = filename,
+            filename = filename,params_tuple...
+            #=
             verbose_level = params.verbose_level,
             printvalues = params.printvalues,
             fermiontype = params.fermiontype,
@@ -153,6 +164,7 @@ function Pion_correlator_measurement(
             Nf = fermionparameters.Nf,
             eps_CG = params.eps,
             MaxCGstep = params.MaxCGstep,
+            =#
         )
     elseif params.fermiontype == "Wilson" || params.fermiontype == "WilsonClover"
         if fermionparameters.hasclover
@@ -161,6 +173,8 @@ function Pion_correlator_measurement(
         method = Pion_correlator_measurement(
             U;
             filename = filename,
+            params_tuple...
+            #=
             verbose_level = params.verbose_level,
             printvalues = params.printvalues,
             fermiontype = params.fermiontype,
@@ -168,12 +182,15 @@ function Pion_correlator_measurement(
             r = fermionparameters.r,
             eps_CG = params.eps,
             MaxCGstep = params.MaxCGstep,
+            =#
         )
     elseif params.fermiontype == "Domainwall"
         error("Domainwall fermion is not implemented in Pion measurement!")
         method = Pion_correlator_measurement(
             U;
             filename = filename,
+            params_tuple...
+            #=
             verbose_level = params.verbose_level,
             printvalues = params.printvalues,
             fermiontype = params.fermiontype,
@@ -181,6 +198,7 @@ function Pion_correlator_measurement(
             M = fermionparameters.M,
             eps_CG = params.eps,
             MaxCGstep = params.MaxCGstep,
+            =#
         )
     else
         error("fermiontype = $(params.fermiontype) is not supported")

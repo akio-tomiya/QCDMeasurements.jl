@@ -135,6 +135,25 @@ Base.@kwdef mutable struct TopologicalCharge_parameters <: Measurement_parameter
     kinds_of_topological_charge::Vector{String} = ["plaquette", "clover"]
 end
 
+Base.@kwdef mutable struct Eigenvalue_parameters <: Measurement_parameters
+    #common::Measurement_common_parameters = Measurement_common_parameters()
+    methodname::String = "Eigenvalue"
+    measure_every::Int64 = 10
+    fermiontype::String = "Wilson"
+    eps::Float64 = 1e-19
+    MaxCGstep::Int64 = 3000
+    smearing_for_fermion::String = "nothing"
+    stout_numlayers::Union{Nothing,Int64} = nothing
+    stout_ρ::Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Union{Nothing,Array{String,1}} = nothing
+    #smearing::Smearing_parameters = NoSmearing_parameters()
+    fermion_parameters::Fermion_parameters = Wilson_parameters()
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    nev::Int64  =10 #num. of eigenvalues
+    which::Symbol  = :SM # :SM smallest magnitude
+end
+
 function initialize_measurement_parameters(methodname)
     if methodname == "Plaquette"
         method = Plaq_parameters()
@@ -150,6 +169,8 @@ function initialize_measurement_parameters(methodname)
         method = Energy_density_parameters()
     elseif methodname == "Wilson_loop"
         method = Wilson_loop_parameters()
+    elseif methodname == "Eigenvalue"
+        method = Eigenvalue_parameters()
     else
         @error "$methodname is not implemented in parameter_structs.jl"
     end
@@ -240,8 +261,96 @@ function prepare_measurement(U, measurement_parameters::T, filename = "") where 
     elseif T == Wilson_loop_parameters
         filename_input = ifelse(filename == "", "Wilson_loop.txt", filename)
         measurement = Wilson_loop_measurement(U, measurement_parameters, filename_input)
+    elseif T == Eigenvalue_parameters 
+        filename_input = ifelse(filename == "", "Eigenvalues.txt", filename)
+        measurement = Eigenvalue_measurement(U, measurement_parameters, filename_input)
     else
         error(T, " is not supported in measurements")
     end
     return measurement
+end
+
+
+function make_fermionparameter_dict(U,fermiontype,
+        mass,
+        Nf,
+        κ,
+        r,
+        L5,
+        M,
+    )
+    Nfbase = 1
+    factor = 1
+    params = Dict()
+    parameters_action = Dict()
+    if fermiontype == "Staggered"
+        x = Initialize_pseudofermion_fields(U[1], "staggered")
+        params["Dirac_operator"] = "staggered"
+        params["mass"] = mass
+        parameters_action["Nf"] = Nf
+        Nfbase = 4
+        #Nfbase = ifelse( m.fparam.Dirac_operator == "Staggered",4,1)
+        factor = Nf / Nfbase
+
+    elseif fermiontype == "Wilson"
+        x = Initialize_pseudofermion_fields(U[1], "Wilson", nowing = true)
+        params["Dirac_operator"] = "Wilson"
+        params["κ"] = κ
+        params["r"] = r
+        params["faster version"] = true
+    elseif fermiontype == "Domainwall"
+        params["Dirac_operator"] = "Domainwall"
+        params["mass"] = mass
+        params["L5"] = L5
+        params["M"] = M
+        x = Initialize_pseudofermion_fields(U[1], "Domainwall", L5 = L5)
+    else
+        error(
+            "fermion type $fermiontype is not supported in chiral condensate measurement",
+        )
+    end
+    return params,parameters_action,x,factor
+end
+
+function fermionparameter_params(params)
+    fermionparameters = params.fermion_parameters
+    if params.fermiontype == "Staggered"
+        params_tuple = (
+            verbose_level = params.verbose_level,
+            printvalues = params.printvalues,
+            fermiontype = params.fermiontype,
+            mass = fermionparameters.mass,
+            Nf = fermionparameters.Nf,
+            eps_CG = params.eps,
+            MaxCGstep = params.MaxCGstep,
+        )
+    elseif params.fermiontype == "Wilson" || params.fermiontype == "WilsonClover"
+        if fermionparameters.hasclover
+            error("WilsonClover is not implemented in Pion measurement")
+        end
+        params_tuple = (
+            verbose_level = params.verbose_level,
+            printvalues = params.printvalues,
+            fermiontype = params.fermiontype,
+            κ = fermionparameters.hop,
+            r = fermionparameters.r,
+            eps_CG = params.eps,
+            MaxCGstep = params.MaxCGstep,
+        )
+    elseif params.fermiontype == "Domainwall"
+        #error("Domainwall fermion is not implemented in Pion measurement!")
+        params_tuple = (
+            verbose_level = params.verbose_level,
+            printvalues = params.printvalues,
+            fermiontype = params.fermiontype,
+            L5 = fermionparameters.N5,
+            M = fermionparameters.M,
+            eps_CG = params.eps,
+            MaxCGstep = params.MaxCGstep,
+        )
+    else
+        error("fermiontype = $(params.fermiontype) is not supported")
+    end
+    return params_tuple
+
 end

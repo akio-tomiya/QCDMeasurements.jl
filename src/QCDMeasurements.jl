@@ -2,6 +2,7 @@ module QCDMeasurements
 using Wilsonloop
 using Gaugefields
 using LatticeDiracOperators
+using Arpack
 import LatticeDiracOperators.Dirac_operators:
     clear_fermion!, AbstractFermionfields_4D, Z4_distribution_fermi!
 

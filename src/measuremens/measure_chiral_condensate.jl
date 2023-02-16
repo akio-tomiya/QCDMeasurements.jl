@@ -40,6 +40,16 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
         else
             boundarycondition = BoundaryCondition
         end
+
+        params,parameters_action,x,factor = make_fermionparameter_dict(U,
+            fermiontype,mass,
+            Nf,
+            κ,
+            r,
+            L5,
+            M,
+        )
+        #=
         Nfbase = 1
         factor = 1
         params = Dict()
@@ -70,6 +80,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
                 "fermion type $fermiontype is not supported in chiral condensate measurement",
             )
         end
+        =#
 
         params["eps_CG"] = eps_CG
         params["verbose_level"] = verbose_level
