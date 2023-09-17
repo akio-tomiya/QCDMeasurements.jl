@@ -16,7 +16,7 @@ This is intended to use in [LatticeQCD.jl](https://github.com/akio-tomiya/Lattic
 This package has following functionarities
 
 - Plaquette measurement.
-- Poylakov loop measurement.
+- Polyakov loop measurement.
 - Pion correlator measurement.
 - Chiral condensate measurement.
 - Topological charge measurement.
