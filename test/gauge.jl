@@ -9,12 +9,12 @@ function SU3test()
     Dim = 4
     NC = 3
 
-    U = Initialize_4DGaugefields(NC,Nwing,NX,NY,NZ,NT,condition = "cold")
+    U = Initialize_4DGaugefields(NC, Nwing, NX, NY, NZ, NT, condition="cold")
     #U = Initialize_Gaugefields(NC,Nwing,NX,NY,NZ,NT,condition = "hot",randomnumber="Reproducible")
     filename = "testconf.txt"
-    L = [NX,NY,NZ,NT]
-    load_BridgeText!(filename,U,L,NC)
-    
+    L = [NX, NY, NZ, NT]
+    load_BridgeText!(filename, U, L, NC)
+
     #=
     filename = "./conf_00000008.ildg"
     ildg = ILDG(filename)
@@ -22,60 +22,70 @@ function SU3test()
     L = [NX,NY,NZ,NT]
     load_gaugefield!(U,i,ildg,L,NC)
     =#
-    
+
 
     m_plaq = Plaquette_measurement(U)
     m_poly = Polyakov_measurement(U)
 
-    plaq = get_value(measure(m_plaq,U))
-    poly = get_value(measure(m_poly,U))
+    plaq = get_value(measure(m_plaq, U))
+    poly = get_value(measure(m_poly, U))
     println("plaq: $plaq")
     println("poly: $poly")
 
-    m_wilson = Wilson_loop_measurement(U,printvalues=true)
-    wilsonloop = get_value(measure(m_wilson,U))
-    println("wilson loop: ",wilsonloop)
+    m_wilson = Wilson_loop_measurement(U, printvalues=true)
+    wilsonloop = get_value(measure(m_wilson, U))
+    println("wilson loop: ", wilsonloop)
     #return
 
     m_energy = Energy_density_measurement(U)
     m_topo = Topological_charge_measurement(U)
-    energy = get_value(measure(m_energy,U))
-    topo = get_value(measure(m_topo,U))
+    energy = get_value(measure(m_energy, U))
+    topo = get_value(measure(m_topo, U))
     println("energy: $energy")
     println("topo: $topo")
 
     m_pion = Pion_correlator_measurement(U)
-    m_pion_Staggered = Pion_correlator_measurement(U,fermiontype = "Staggered")
-    m_pion_Wilson = Pion_correlator_measurement(U,fermiontype = "Wilson")
-    pion = get_value(measure(m_pion,U))
-    pion_s = get_value(measure(m_pion_Staggered,U))
-    pion_w = get_value(measure(m_pion_Wilson,U))
+    m_pion_Staggered = Pion_correlator_measurement(U, fermiontype="Staggered")
+    m_pion_Wilson = Pion_correlator_measurement(U, fermiontype="Wilson")
+    pion = get_value(measure(m_pion, U))
+    pion_s = get_value(measure(m_pion_Staggered, U))
+    pion_w = get_value(measure(m_pion_Wilson, U))
 
     println("pion: $pion")
     println("pion correlator with Staggered fermion: $pion_s")
     println("pion correlator with  Wilson fermion: $pion_w")
 
-    m_chiral_Staggered = Chiral_condensate_measurement(U,fermiontype = "Staggered")
-    m_chiral_Wilson = Chiral_condensate_measurement(U,fermiontype = "Wilson")
-    chiral_s = get_value(measure(m_chiral_Staggered,U))
-    chiral_w = get_value(measure(m_chiral_Wilson,U))
+    m_chiral_Staggered = Chiral_condensate_measurement(U, fermiontype="Staggered")
+    m_chiral_Wilson = Chiral_condensate_measurement(U, fermiontype="Wilson")
+    chiral_s = get_value(measure(m_chiral_Staggered, U))
+    chiral_w = get_value(measure(m_chiral_Wilson, U))
 
     println("Chiral condensate with Staggered fermion: $chiral_s")
     println("Chiral condensatewith  Wilson fermion: $chiral_w")
 
-    TC_methods = ["plaquette","clover"]
-    m_topo = Topological_charge_measurement(U,TC_methods = TC_methods)
+    println("higher orders")
+    m_chiral_Staggered_high = Chiral_condensate_measurement(U, fermiontype="Staggered", order=3)
+    m_chiral_Wilson_high = Chiral_condensate_measurement(U, fermiontype="Wilson", order=3)
+    chiral_s_high = get_value(measure(m_chiral_Staggered_high, U))
+    chiral_w_high = get_value(measure(m_chiral_Wilson_high, U))
+
+    println("Chiral condensate with Staggered fermion: $chiral_s_high")
+    println("Chiral condensatewith  Wilson fermion: $chiral_w_high")
+
+
+    TC_methods = ["plaquette", "clover"]
+    m_topo = Topological_charge_measurement(U, TC_methods=TC_methods)
     g = Gradientflow(U)
-    for itrj=1:100
-        flow!(U,g)
-        @time plaq_t = get_value(measure(m_plaq,U))
-        @time poly = get_value(measure(m_poly,U))
+    for itrj = 1:100
+        flow!(U, g)
+        @time plaq_t = get_value(measure(m_plaq, U))
+        @time poly = get_value(measure(m_poly, U))
         println("$itrj plaq_t = $plaq_t")
         println("$itrj polyakov loop = $(real(poly)) $(imag(poly))")
 
-        @time topo = get_value(measure(m_topo,U))
+        @time topo = get_value(measure(m_topo, U))
         print("$itrj topological charge: ")
-        for (key,value) in topo
+        for (key, value) in topo
             print("$key $value \t")
         end
         println("\t")

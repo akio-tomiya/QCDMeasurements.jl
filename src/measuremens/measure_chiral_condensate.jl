@@ -11,23 +11,25 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
     _temporary_fermionfields::Vector{TF_vec}
     Nr::Int64
     factor::Float64
+    order::Int64
 
     function Chiral_condensate_measurement(
         U::Vector{T};
-        filename = nothing,
-        verbose_level = 2,
-        printvalues = false,
-        fermiontype = "Staggered",
-        mass = 0.1,
-        Nf = 2,
-        κ = 1,
-        r = 1,
-        L5 = 2,
-        M = -1,
-        eps_CG = 1e-14,
-        MaxCGstep = 3000,
-        BoundaryCondition = nothing,
-        Nr = 10,
+        filename=nothing,
+        verbose_level=2,
+        printvalues=false,
+        fermiontype="Staggered",
+        mass=0.1,
+        Nf=2,
+        κ=1,
+        r=1,
+        L5=2,
+        M=-1,
+        eps_CG=1e-14,
+        MaxCGstep=3000,
+        BoundaryCondition=nothing,
+        Nr=10,
+        order=1,
     ) where {T}
 
         Dim = length(U)
@@ -41,8 +43,8 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
             boundarycondition = BoundaryCondition
         end
 
-        params,parameters_action,x,factor = make_fermionparameter_dict(U,
-            fermiontype,mass,
+        params, parameters_action, x, factor = make_fermionparameter_dict(U,
+            fermiontype, mass,
             Nf,
             κ,
             r,
@@ -103,7 +105,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
         end
         =#
         if printvalues
-            verbose_print = Verbose_print(verbose_level, myid = myrank, filename = filename)
+            verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
         else
             verbose_print = nothing
         end
@@ -118,6 +120,10 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
         end
 
         numf = 2
+        if order > 1
+            numf += 1
+        end
+
         TF_vec = typeof(x)
         _temporary_fermionfields = Vector{TF_vec}(undef, numf)
         for i = 1:numf
@@ -135,6 +141,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
             _temporary_fermionfields,
             Nr,
             factor,
+            order
         )
 
     end
@@ -146,20 +153,20 @@ end
 function Chiral_condensate_measurement(
     U::Vector{T},
     params::ChiralCondensate_parameters,
-    filename = "Chiral_condensate.txt",
+    filename="Chiral_condensate.txt",
 ) where {T}
     if params.fermiontype == "Staggered"
         method = Chiral_condensate_measurement(
             U;
-            filename = filename,
-            verbose_level = params.verbose_level,
-            printvalues = params.printvalues,
-            fermiontype = params.fermiontype,
-            mass = params.mass,
-            Nf = params.Nf,
-            eps_CG = params.eps,
-            MaxCGstep = params.MaxCGstep,
-            Nr = params.Nr,
+            filename=filename,
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            mass=params.mass,
+            Nf=params.Nf,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+            Nr=params.Nr,
         )
     else
         error("$(params.fermiontype) is not supported in Chiral_condensate_measurement")
@@ -173,7 +180,7 @@ end
 function measure(
     m::M,
     U::Array{<:AbstractGaugefields{NC,Dim},1};
-    additional_string = "",
+    additional_string="",
 ) where {M<:Chiral_condensate_measurement,NC,Dim}
     temps_fermi = get_temporary_fermionfields(m)
     p = temps_fermi[1]
@@ -183,16 +190,37 @@ function measure(
     #Nr = 100
     Nr = m.Nr
     measurestring = ""
+    if m.order != 1
+        tmps = zeros(ComplexF64, m.order)
+        p2 = temps_fermi[3]
+        pbps = zeros(ComplexF64, m.order)
+    end
 
     for ir = 1:Nr
         clear_fermion!(p)
         Z4_distribution_fermi!(r)
         solve_DinvX!(p, D, r)
         tmp = dot(r, p) # hermitian inner product
+        if m.order != 1
+            tmps[1] = tmp
+            for i = 2:m.order
+                solve_DinvX!(p2, D, p)
+                p, p2 = p2, p
+                tmps[i] = dot(r, p)
+            end
+            pbps .+= tmps
+        end
 
         if m.printvalues
             #println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand chiralcond")
             measurestring_ir = "# $ir $additional_string $(real(tmp)/U[1].NV) # itrj irand chiralcond"
+            if m.order != 1
+                measurestring_ir = "# $ir $additional_string"
+                for i = 1:m.order
+                    measurestring_ir *= " $(real(tmps[i])/U[1].NV) "
+                end
+                measurestring_ir *= " # itrj irand chiralcond: $(m.order)-th orders"
+            end
             println_verbose_level2(m.verbose_print, measurestring_ir)
             measurestring *= measurestring_ir * "\n"
         end
@@ -200,14 +228,29 @@ function measure(
     end
 
     pbp_value = real(pbp / Nr) / U[1].NV * m.factor
+    if m.order != 1
+        pbp_values = real.(pbps / Nr) / U[1].NV * m.factor
+    end
 
     if m.printvalues
         measurestring_ir = "$pbp_value # pbp Nr=$Nr"
+        if m.order != 1
+            measurestring_ir = " "
+            for i = 1:m.order
+                measurestring_ir *= " $(pbp_values[i]) "
+            end
+            measurestring_ir *= "# pbp Nr=$Nr"
+        end
         println_verbose_level1(m.verbose_print, measurestring_ir)
         measurestring *= measurestring_ir * "\n"
         flush(stdout)
     end
-    output = Measurement_output(pbp_value, measurestring)
+
+    if m.order != 1
+        output = Measurement_output(pbp_values, measurestring)
+    else
+        output = Measurement_output(pbp_value, measurestring)
+    end
 
     return output
 end

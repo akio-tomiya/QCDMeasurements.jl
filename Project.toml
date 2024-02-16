@@ -1,7 +1,7 @@
 name = "QCDMeasurements"
 uuid = "15719ebc-80aa-4a1c-a78b-278b460177d7"
 authors = ["Akio Tomiya, Yuki Nagai <cometscome@gmail.com> and contributors"]
-version = "0.1.4"
+version = "0.1.5"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
