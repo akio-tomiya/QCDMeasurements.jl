@@ -15,19 +15,19 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
 
     function Pion_correlator_measurement(
         U::Vector{T};
-        filename = nothing,
-        verbose_level = 2,
-        printvalues = false,
-        fermiontype = "Staggered",
-        mass = 0.1,
-        Nf = 2,
-        κ = 1,
-        r = 1,
-        L5 = 2,
-        M = -1,
-        eps_CG = 1e-14,
-        MaxCGstep = 3000,
-        BoundaryCondition = nothing,
+        filename=nothing,
+        verbose_level=2,
+        printvalues=false,
+        fermiontype="Staggered",
+        mass=0.1,
+        Nf=2,
+        κ=1,
+        r=1,
+        L5=2,
+        M=-1,
+        eps_CG=1e-14,
+        MaxCGstep=3000,
+        BoundaryCondition=nothing,
     ) where {T}
         NC = U[1].NC
 
@@ -42,14 +42,14 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
             boundarycondition = BoundaryCondition
         end
         #println(boundarycondition)
-        params,parameters_action,x,factor = make_fermionparameter_dict(U,
-            fermiontype,mass,
+        params, parameters_action, x, factor = make_fermionparameter_dict(U,
+            fermiontype, mass,
             Nf,
             κ,
             r,
             L5,
             M,
-    )        #=
+        )        #=
         params = Dict()
         parameters_action = Dict()
         if fermiontype == "Staggered"
@@ -101,7 +101,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
         myrank = get_myrank(U)
 
         if printvalues
-            verbose_print = Verbose_print(verbose_level, myid = myrank, filename = filename)
+            verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
         else
             verbose_print = nothing
         end
@@ -142,7 +142,7 @@ end
 function Pion_correlator_measurement(
     U::Vector{T},
     params::Pion_parameters,
-    filename = "Pion_correlator.txt",
+    filename="Pion_correlator.txt",
 ) where {T}
 
     if params.smearing_for_fermion != "nothing"
@@ -155,7 +155,7 @@ function Pion_correlator_measurement(
     if params.fermiontype == "Staggered"
         method = Pion_correlator_measurement(
             U;
-            filename = filename,params_tuple...
+            filename=filename, params_tuple...
             #=
             verbose_level = params.verbose_level,
             printvalues = params.printvalues,
@@ -172,7 +172,7 @@ function Pion_correlator_measurement(
         end
         method = Pion_correlator_measurement(
             U;
-            filename = filename,
+            filename=filename,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -188,7 +188,7 @@ function Pion_correlator_measurement(
         error("Domainwall fermion is not implemented in Pion measurement!")
         method = Pion_correlator_measurement(
             U;
-            filename = filename,
+            filename=filename,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -215,7 +215,7 @@ end
 function measure(
     m::M,
     U::Array{<:AbstractGaugefields{NC,Dim},1};
-    additional_string = "",
+    additional_string="",
 ) where {M<:Pion_correlator_measurement,NC,Dim}
     S = m.S
     S .= 0
@@ -336,12 +336,14 @@ function measure(
             stringcc *= "$cc "
         end
         #println_verbose_level1(U[1],stringcc)
-        measurestring *= stringcc * "\n"
-        println_verbose_level1(m.verbose_print, stringcc)
+        #measurestring *= stringcc * "\n"
+        measurestring *= stringcc * " #pioncorrelator"
+        #println_verbose_level1(m.verbose_print, stringcc)
         #println_verbose_level1(U[1],"#pioncorrelator")
-        st = "#pioncorrelator"
-        measurestring *= st * "\n"
-        println_verbose_level1(m.verbose_print, st)
+        #st = "#pioncorrelator"
+        #measurestring *= st * "\n"
+        println_verbose_level1(m.verbose_print, stringcc * " #pioncorrelator")
+        #println_verbose_level1(m.verbose_print, st)
     end
 
     output = Measurement_output(Cpi, measurestring)
