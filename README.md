@@ -10,7 +10,8 @@ QCDMeasurements.jl is now the external package for measurements in Lattice QCD.
 <img src="LQCDjl_block.png" width=300> 
 
 
-This is intended to use in [LatticeQCD.jl](https://github.com/akio-tomiya/LatticeQCD.jl).
+This is intended to use in [LatticeQCD.jl](https://github.com/akio-tomiya/LatticeQCD.jl)
+and a code in a project [JuliaQCD](https://github.com/JuliaQCD/).
 
 # What this package can do:
 This package has following functionarities
