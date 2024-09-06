@@ -191,3 +191,18 @@ end
 SU3test()
 ```
 
+# Acknowledgment
+If you write a paper using this package, please refer this code.
+
+BibTeX citation is following
+```
+@misc{nagai2024juliaqcdportablelatticeqcd,
+      title={JuliaQCD: Portable lattice QCD package in Julia language}, 
+      author={Yuki Nagai and Akio Tomiya},
+      year={2024},
+      eprint={2409.03030},
+      archivePrefix={arXiv},
+      primaryClass={hep-lat},
+      url={https://arxiv.org/abs/2409.03030}, 
+}
+```
