@@ -1,6 +1,7 @@
+import Gaugefields
 abstract type AbstractMeasurement end
 
-function get_temporary_gaugefields(m::AbstractMeasurement)
+function Gaugefields.get_temporary_gaugefields(m::AbstractMeasurement)
     return m._temporary_gaugefields
 end
 

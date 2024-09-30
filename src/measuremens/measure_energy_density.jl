@@ -9,14 +9,14 @@ mutable struct Energy_density_measurement{Dim,TG} <: AbstractMeasurement
 
     function Energy_density_measurement(
         U::Vector{T};
-        filename = nothing,
-        verbose_level = 2,
-        printvalues = false,
+        filename=nothing,
+        verbose_level=2,
+        printvalues=false,
     ) where {T}
         myrank = get_myrank(U)
 
         if printvalues
-            verbose_print = Verbose_print(verbose_level, myid = myrank, filename = filename)
+            verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
         else
             verbose_print = nothing
         end
@@ -51,13 +51,13 @@ mutable struct Energy_density_measurement{Dim,TG} <: AbstractMeasurement
 
 end
 
-function Energy_density_measurement(U, params, filename = "Energy_density.txt") where {T}
+function Energy_density_measurement(U, params, filename="Energy_density.txt")
 
     return Energy_density_measurement(
         U;
-        filename = filename,
-        verbose_level = params.verbose_level,
-        printvalues = params.printvalues,
+        filename=filename,
+        verbose_level=params.verbose_level,
+        printvalues=params.printvalues,
     )
 end
 
@@ -65,7 +65,7 @@ end
 function measure(
     m::M,
     U::Array{<:AbstractGaugefields{NC,Dim},1};
-    additional_string = "",
+    additional_string="",
 ) where {M<:Energy_density_measurement,NC,Dim}
     temps = get_temporary_gaugefields(m)
     value = calculate_energy_density(U, m.temp_UμνTA, temps)
