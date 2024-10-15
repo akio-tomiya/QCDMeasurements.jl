@@ -9,6 +9,7 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
     #factor::Float64
     verbose_print::Union{Verbose_print,Nothing}
     printvalues::Bool
+    originonly::Bool
 
     function Correlation_measurement(
         U::Vector{T},
@@ -18,6 +19,7 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
         filename=nothing,
         verbose_level=2,
         printvalues=false,
+        originonly=true
     ) where {T}
         myrank = get_myrank(U)
 
@@ -51,6 +53,7 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
             position,
             verbose_print,
             printvalues,
+            originonly
         )
 
     end
@@ -95,7 +98,17 @@ function measure(
         g1,
         site_trace_product!,
         temps[1])
-    value = tr(g1)
+
+    if m.originonly
+        if Dim == 4
+            value = NC * g1[1, 1, 1, 1, 1, 1]
+        else
+            Dim == 2
+            value = NC * g1[1, 1, 1, 1]
+        end
+    else
+        value = tr(g1)
+    end
 
     measurestring = ""
 
