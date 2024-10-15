@@ -129,8 +129,8 @@ Base.@kwdef mutable struct Correlation_parameters <: Measurement_parameters
     fermiontype::String = "nothing"
     verbose_level::Int64 = 2
     printvalues::Bool = true
-    loop1::Vector{Tuple{Int64,Int64}} = []
-    loop2::Vector{Tuple{Int64,Int64}} = []
+    loop1::Vector{Vector{Tuple{Int64,Int64}}} = [Tuple{Int64,Int64}[]]
+    loop2::Vector{Vector{Tuple{Int64,Int64}}} = [Tuple{Int64,Int64}[]]
     relativeposition::Vector{Int64} = [0, 0, 0, 0]
     originonly::Bool = true
     loop1position::Vector{Int64} = [1, 1, 1, 1]

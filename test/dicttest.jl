@@ -27,10 +27,14 @@ function SU3test()
     method = Dict()
     methodname = "Correlation"
     method["methodname"] = methodname
+    loops1 = []
     loop1 = [(1, +1), (2, +1), (1, -1), (2, -1)]
-    method["loop1"] = loop1
+    push!(loops1, loop1)
+    method["loop1"] = loops1
+    loops2 = []
     loop2 = [(1, +1), (2, +1), (1, -1), (2, -1)]
-    method["loop2"] = loop2
+    push!(loops2, loop2)
+    method["loop2"] = loops2
     method["relativeposition"] = [0, 0, 0, 2]
 
     m = prepare_measurement_from_dict(U, method)
@@ -40,10 +44,14 @@ function SU3test()
     method = Dict()
     methodname = "Correlation"
     method["methodname"] = methodname
+    loops1 = []
     loop1 = [(1, +1), (2, +1), (1, -1), (2, -1)]
-    method["loop1"] = loop1
+    push!(loops1, loop1)
+    method["loop1"] = loops1
+    loops2 = []
     loop2 = [(1, +1), (2, +1), (1, -1), (2, -1)]
-    method["loop2"] = loop2
+    push!(loops2, loop2)
+    method["loop2"] = loops2
     method["relativeposition"] = [0, 0, 0, 2]
     method["loop1position"] = [1, 1, 2, 2]
 

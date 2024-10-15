@@ -3,8 +3,8 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
     _temporary_gaugefields::Vector{TG}
     temp_g1g2::Vector{TG}
     Dim::Int8
-    loop1::Wilsonline{Dim}
-    loop2::Wilsonline{Dim}
+    loop1::Vector{Wilsonline{Dim}}
+    loop2::Vector{Wilsonline{Dim}}
     relativeposition::Vector{Int64}
     #factor::Float64
     verbose_print::Union{Verbose_print,Nothing}
@@ -45,13 +45,22 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
             _temporary_gaugefields[i] = similar(U[1])
         end
 
+        wloop1 = []
+        for loop in loop1
+            push!(wloop1, Wilsonline(loop))
+        end
+        wloop2 = []
+        for loop in loop2
+            push!(wloop2, Wilsonline(loop))
+        end
+
         return new{Dim,T}(
             filename,
             _temporary_gaugefields,
             temp_g1g2,
             Dim,
-            Wilsonline(loop1),
-            Wilsonline(loop2),
+            wloop1,#Wilsonline(loop1),
+            wloop2,#Wilsonline(loop2),
             relativeposition,
             verbose_print,
             printvalues,
