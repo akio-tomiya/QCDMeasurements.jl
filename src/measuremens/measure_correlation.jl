@@ -10,16 +10,18 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
     verbose_print::Union{Verbose_print,Nothing}
     printvalues::Bool
     originonly::Bool
+    originposition::Vector{Int64}
 
     function Correlation_measurement(
         U::Vector{T},
         loop1,
         loop2,
-        position;
+        position, ;
         filename=nothing,
         verbose_level=2,
         printvalues=false,
-        originonly=true
+        originonly=true,
+        originposition=Int64[1, 1, 1, 1]
     ) where {T}
         myrank = get_myrank(U)
 
@@ -53,7 +55,8 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
             position,
             verbose_print,
             printvalues,
-            originonly
+            originonly,
+            originposition
         )
 
     end
@@ -70,6 +73,8 @@ function Correlation_measurement(U, params, filename="Correlation.txt")
         filename=filename,
         verbose_level=params.verbose_level,
         printvalues=params.printvalues,
+        originonly=params.originonly,
+        originposition=params.originposition
     )
 end
 
@@ -87,15 +92,15 @@ function measure(
     end
 
     if m.originonly
-        if Dim == 4
-            indices = (1, 1, 1, 1)
-            indices2 = (1 + m.position[1], 1 + m.position[2], 1 + m.position[3], 1 + m.position[4])
-            #value = NC * g1[1, 1, 1, 1, 1, 1]
-        elseif Dim == 2
-            indices = (1, 1)
-            indices2 = (1 + m.position[1], 1 + m.position[2])
-            #value = NC * g1[1, 1, 1, 1]
-        end
+        #if Dim == 4
+        indices = Tuple(m.originposition)#(1, 1, 1, 1)
+        indices2 = Tuple(m.originposition .+ m.position)
+        #value = NC * g1[1, 1, 1, 1, 1, 1]
+        #elseif Dim == 2
+        #    indices = (1, 1)
+        #    indices2 = (1 + m.position[1], 1 + m.position[2])
+        #    #value = NC * g1[1, 1, 1, 1]
+        #end
         mat_temps = Matrix{ComplexF64}[]
         for i = 1:5
             push!(mat_temps, zeros(ComplexF64, NC, NC))

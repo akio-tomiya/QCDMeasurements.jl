@@ -37,6 +37,20 @@ function SU3test()
     value = get_value(measure(m, U))
     println("$methodname $value")
 
+    method = Dict()
+    methodname = "Correlation"
+    method["methodname"] = methodname
+    loop1 = [(1, +1), (2, +1), (1, -1), (2, -1)]
+    method["loop1"] = loop1
+    loop2 = [(1, +1), (2, +1), (1, -1), (2, -1)]
+    method["loop2"] = loop2
+    method["position"] = [0, 0, 0, 2]
+    method["originposition"] = [1, 1, 2, 2]
+
+    m = prepare_measurement_from_dict(U, method)
+    value = get_value(measure(m, U))
+    println("$methodname $value")
+
 
     method = Dict()
     methodname = "Eigenvalue"
