@@ -5,23 +5,23 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
     Dim::Int8
     loop1::Wilsonline{Dim}
     loop2::Wilsonline{Dim}
-    position::Vector{Int64}
+    relativeposition::Vector{Int64}
     #factor::Float64
     verbose_print::Union{Verbose_print,Nothing}
     printvalues::Bool
     originonly::Bool
-    originposition::Vector{Int64}
+    loop1position::Vector{Int64}
 
     function Correlation_measurement(
         U::Vector{T},
         loop1,
         loop2,
-        position, ;
+        relativeposition, ;
         filename=nothing,
         verbose_level=2,
         printvalues=false,
         originonly=true,
-        originposition=Int64[1, 1, 1, 1]
+        loop1position=Int64[1, 1, 1, 1]
     ) where {T}
         myrank = get_myrank(U)
 
@@ -52,11 +52,11 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
             Dim,
             Wilsonline(loop1),
             Wilsonline(loop2),
-            position,
+            relativeposition,
             verbose_print,
             printvalues,
             originonly,
-            originposition
+            loop1position
         )
 
     end
@@ -69,12 +69,12 @@ function Correlation_measurement(U, params, filename="Correlation.txt")
         U,
         params.loop1,
         params.loop2,
-        params.position;
+        params.relativeposition;
         filename=filename,
         verbose_level=params.verbose_level,
         printvalues=params.printvalues,
         originonly=params.originonly,
-        originposition=params.originposition
+        loop1position=params.loop1position
     )
 end
 
@@ -93,12 +93,12 @@ function measure(
 
     if m.originonly
         #if Dim == 4
-        indices = Tuple(m.originposition)#(1, 1, 1, 1)
-        indices2 = Tuple(m.originposition .+ m.position)
+        indices = Tuple(m.loop1position)#(1, 1, 1, 1)
+        indices2 = Tuple(m.loop1position .+ m.relativeposition)
         #value = NC * g1[1, 1, 1, 1, 1, 1]
         #elseif Dim == 2
         #    indices = (1, 1)
-        #    indices2 = (1 + m.position[1], 1 + m.position[2])
+        #    indices2 = (1 + m.position[1], 1 + m.relativeposition[2])
         #    #value = NC * g1[1, 1, 1, 1]
         #end
         mat_temps = Matrix{ComplexF64}[]
@@ -141,7 +141,7 @@ function measure(
         evaluate_gaugelinks!(g1, m.loop1, U, temps)
         evaluate_gaugelinks!(g2, m.loop2, U, temps)
 
-        g2shifted = Gaugefields.AbstractGaugefields_module.shift_U(g2, Tuple(m.position))
+        g2shifted = Gaugefields.AbstractGaugefields_module.shift_U(g2, Tuple(m.relativeposition))
         substitute_U!(temps[1], g2shifted)
 
         map_U!(

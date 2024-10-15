@@ -31,7 +31,7 @@ function SU3test()
     method["loop1"] = loop1
     loop2 = [(1, +1), (2, +1), (1, -1), (2, -1)]
     method["loop2"] = loop2
-    method["position"] = [0, 0, 0, 2]
+    method["relativeposition"] = [0, 0, 0, 2]
 
     m = prepare_measurement_from_dict(U, method)
     value = get_value(measure(m, U))
@@ -44,8 +44,8 @@ function SU3test()
     method["loop1"] = loop1
     loop2 = [(1, +1), (2, +1), (1, -1), (2, -1)]
     method["loop2"] = loop2
-    method["position"] = [0, 0, 0, 2]
-    method["originposition"] = [1, 1, 2, 2]
+    method["relativeposition"] = [0, 0, 0, 2]
+    method["loop1position"] = [1, 1, 2, 2]
 
     m = prepare_measurement_from_dict(U, method)
     value = get_value(measure(m, U))

@@ -131,9 +131,9 @@ Base.@kwdef mutable struct Correlation_parameters <: Measurement_parameters
     printvalues::Bool = true
     loop1::Vector{Tuple{Int64,Int64}} = []
     loop2::Vector{Tuple{Int64,Int64}} = []
-    position::Vector{Int64} = [0, 0, 0, 0]
+    relativeposition::Vector{Int64} = [0, 0, 0, 0]
     originonly::Bool = true
-    originposition::Vector{Int64} = [1, 1, 1, 1]
+    loop1position::Vector{Int64} = [1, 1, 1, 1]
     #common::Measurement_common_parameters = Measurement_common_parameters()
 end
 
