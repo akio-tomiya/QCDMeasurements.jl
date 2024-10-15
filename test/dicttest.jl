@@ -30,6 +30,8 @@ function SU3test()
     loops1 = []
     loop1 = [(1, +1), (2, +1), (1, -1), (2, -1)]
     push!(loops1, loop1)
+    loop1 = [(1, +1), (3, +1), (1, -1), (3, -1)]
+    push!(loops1, loop1)
     method["loop1"] = loops1
     loops2 = []
     loop2 = [(1, +1), (2, +1), (1, -1), (2, -1)]
