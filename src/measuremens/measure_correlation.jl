@@ -79,34 +79,71 @@ function measure(
     U::Array{<:AbstractGaugefields{NC,Dim},1};
     additional_string="",
 ) where {M<:Correlation_measurement,NC,Dim}
-    temps = get_temporary_gaugefields(m)
-    g1 = m.temp_g1g2[1]
-    g2 = m.temp_g1g2[2]
 
-    evaluate_gaugelinks!(g1, m.loop1, U, temps)
-    evaluate_gaugelinks!(g2, m.loop2, U, temps)
 
     function site_trace_product!(B, A)
         c = tr(B) * tr(A)
         B .= c / NC
     end
 
-    g2shifted = Gaugefields.AbstractGaugefields_module.shift_U(g2, Tuple(m.position))
-    substitute_U!(temps[1], g2shifted)
-
-    map_U!(
-        g1,
-        site_trace_product!,
-        temps[1])
-
     if m.originonly
         if Dim == 4
-            value = NC * g1[1, 1, 1, 1, 1, 1]
-        else
-            Dim == 2
-            value = NC * g1[1, 1, 1, 1]
+            indices = (1, 1, 1, 1)
+            indices2 = (1 + m.position[1], 1 + m.position[2], 1 + m.position[3], 1 + m.position[4])
+            #value = NC * g1[1, 1, 1, 1, 1, 1]
+        elseif Dim == 2
+            indices = (1, 1)
+            indices2 = (1 + m.position[1], 1 + m.position[2])
+            #value = NC * g1[1, 1, 1, 1]
         end
+        mat_temps = Matrix{ComplexF64}[]
+        for i = 1:5
+            push!(mat_temps, zeros(ComplexF64, NC, NC))
+        end
+
+        V1 = zeros(ComplexF64, NC, NC)
+        V2 = zeros(ComplexF64, NC, NC)
+        println(indices)
+        Gaugefields.AbstractGaugefields_module.evaluate_gaugelinks_eachsite!(
+            V1,
+            m.loop1,
+            U,
+            mat_temps,
+            indices...,
+        )
+        Gaugefields.AbstractGaugefields_module.evaluate_gaugelinks_eachsite!(
+            V2,
+            m.loop2,
+            U,
+            mat_temps,
+            indices2...,
+        )
+        value = tr(V1) * tr(V2)
+        #println(value)
+
+
+        #if Dim == 4
+        #    value = NC * g1[1, 1, 1, 1, 1, 1]
+        #elseif Dim == 2
+        #    value = NC * g1[1, 1, 1, 1]
+        #end
+        #println(value)
     else
+        temps = get_temporary_gaugefields(m)
+        g1 = m.temp_g1g2[1]
+        g2 = m.temp_g1g2[2]
+
+        evaluate_gaugelinks!(g1, m.loop1, U, temps)
+        evaluate_gaugelinks!(g2, m.loop2, U, temps)
+
+        g2shifted = Gaugefields.AbstractGaugefields_module.shift_U(g2, Tuple(m.position))
+        substitute_U!(temps[1], g2shifted)
+
+        map_U!(
+            g1,
+            site_trace_product!,
+            temps[1])
+
         value = tr(g1)
     end
 
