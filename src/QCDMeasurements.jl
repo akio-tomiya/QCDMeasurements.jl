@@ -14,6 +14,7 @@ export Polyakov_measurement
 export Pion_correlator_measurement
 export Chiral_condensate_measurement
 export Energy_density_measurement
+export Correlation_measurement
 export Topological_charge_measurement
 export Wilson_loop_measurement
 #export construct_Measurement_parameters_from_dict
