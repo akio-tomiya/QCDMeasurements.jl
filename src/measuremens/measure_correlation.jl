@@ -117,7 +117,6 @@ function measure(
 
         V1 = zeros(ComplexF64, NC, NC)
         V2 = zeros(ComplexF64, NC, NC)
-        println(indices)
         Gaugefields.AbstractGaugefields_module.evaluate_gaugelinks_eachsite!(
             V1,
             m.loop1,

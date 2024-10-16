@@ -23,6 +23,26 @@ function SU3test()
     L = [NX,NY,NZ,NT]
     load_gaugefield!(U,i,ildg,L,NC)
     =#
+    method = Dict()
+    methodname = "Guluonic_correlators"
+    method["methodname"] = methodname
+    loops1 = []
+    loop1 = [(1, +1), (2, +1), (1, -1), (2, -1)]
+    push!(loops1, loop1)
+    loop1 = [(1, +1), (3, +1), (1, -1), (3, -1)]
+    push!(loops1, loop1)
+    method["loop1"] = loops1
+    loops2 = []
+    loop2 = [(1, +1), (2, +1), (1, -1), (2, -1)]
+    push!(loops2, loop2)
+    method["loop2"] = loops2
+
+    m = prepare_measurement_from_dict(U, method)
+    println("$methodname")
+    for ix = 0:NX-1
+        value = get_value(measure(m, U, [1, 1, 1, 1], [ix, 0, 0, 0]))
+        println("$ix $value")
+    end
 
     method = Dict()
     methodname = "Correlation"

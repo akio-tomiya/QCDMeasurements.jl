@@ -137,6 +137,16 @@ Base.@kwdef mutable struct Correlation_parameters <: Measurement_parameters
     #common::Measurement_common_parameters = Measurement_common_parameters()
 end
 
+Base.@kwdef mutable struct Guluonic_correlators_parameters <: Measurement_parameters
+    methodname::String = "Correlation"
+    measure_every::Int64 = 10
+    fermiontype::String = "nothing"
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    loop1::Vector{Vector{Tuple{Int64,Int64}}} = [Tuple{Int64,Int64}[]]
+    loop2::Vector{Vector{Tuple{Int64,Int64}}} = [Tuple{Int64,Int64}[]]
+end
+
 
 Base.@kwdef mutable struct TopologicalCharge_parameters <: Measurement_parameters
     methodname::String = "Topological_charge"
@@ -185,6 +195,8 @@ function initialize_measurement_parameters(methodname)
         method = Energy_density_parameters()
     elseif methodname == "Correlation"
         method = Correlation_parameters()
+    elseif methodname == "Guluonic_correlators"
+        method = Guluonic_correlators_parameters()
     elseif methodname == "Wilson_loop"
         method = Wilson_loop_parameters()
     elseif methodname == "Eigenvalue"
@@ -279,6 +291,9 @@ function prepare_measurement(U, measurement_parameters::T, filename="") where {T
     elseif T == Correlation_parameters
         filename_input = ifelse(filename == "", "Correlation.txt", filename)
         measurement = Correlation_measurement(U, measurement_parameters, filename_input)
+    elseif T == Guluonic_correlators_parameters
+        filename_input = ifelse(filename == "", "Guluonic_correlators.txt", filename)
+        measurement = Guluonic_correlators_measurement(U, measurement_parameters, filename_input)
     elseif T == Wilson_loop_parameters
         filename_input = ifelse(filename == "", "Wilson_loop.txt", filename)
         measurement = Wilson_loop_measurement(U, measurement_parameters, filename_input)
