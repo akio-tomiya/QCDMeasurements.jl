@@ -39,6 +39,7 @@ include("measure_energy_density.jl")
 include("measure_Guluonic_correlators.jl")
 include("measure_correlation.jl")
 include("measure_topological_charge.jl")
+include("measure_topological_charge_density_correlation.jl")
 include("measure_Wilon_loop.jl")
 include("measure_eigenvalues.jl")
 

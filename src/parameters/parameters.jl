@@ -161,6 +161,16 @@ Base.@kwdef mutable struct TopologicalCharge_parameters <: Measurement_parameter
     kinds_of_topological_charge::Vector{String} = ["plaquette", "clover"]
 end
 
+Base.@kwdef mutable struct TopologicalChargeDensityCorrelation_parameters <: Measurement_parameters
+    methodname::String = "Topological_charge_density_correlation"
+    measure_every::Int64 = 10
+    fermiontype::String = "nothing"
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    kinds_of_topological_charge::Vector{String} = ["plaquette", "clover"]
+end
+
+
 Base.@kwdef mutable struct Eigenvalue_parameters <: Measurement_parameters
     #common::Measurement_common_parameters = Measurement_common_parameters()
     methodname::String = "Eigenvalue"
@@ -187,6 +197,8 @@ function initialize_measurement_parameters(methodname)
         method = Poly_parameters()
     elseif methodname == "Topological_charge"
         method = TopologicalCharge_parameters()
+    elseif methodname == "Topological_charge_density_correlation"
+        method = TopologicalChargeDensityCorrelation_parameters()
     elseif methodname == "Chiral_condensate"
         method = ChiralCondensate_parameters()
     elseif methodname == "Pion_correlator"
@@ -277,6 +289,10 @@ function prepare_measurement(U, measurement_parameters::T, filename="") where {T
         filename_input = ifelse(filename == "", "Topological_charge.txt", filename)
         measurement =
             Topological_charge_measurement(U, measurement_parameters, filename_input)
+    elseif T == TopologicalChargeDensityCorrelation_parameters
+        filename_input = ifelse(filename == "", "Topological_charge_density_correlation.txt", filename)
+        measurement =
+            Topological_charge_density_correlation_measurement(U, measurement_parameters, filename_input)
     elseif T == ChiralCondensate_parameters
         filename_input = ifelse(filename == "", "Chiral_condensate.txt", filename)
         measurement =

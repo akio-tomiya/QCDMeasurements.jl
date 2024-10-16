@@ -23,6 +23,21 @@ function SU3test()
     L = [NX,NY,NZ,NT]
     load_gaugefield!(U,i,ildg,L,NC)
     =#
+
+    method = Dict()
+    methodname = "Topological_charge_density_correlation"
+    method["methodname"] = methodname
+    method["kinds_of_topological_charge"] = ["plaquette", "clover", "clover improved"]
+
+    m = prepare_measurement_from_dict(U, method)
+    println("$methodname")
+    for ix = 0:NX
+        value = get_value(measure(m, U, [1, 1, 1, 1], [ix, 0, 0, 0]))
+        println("$ix $(value["plaquette"]) $(value["clover"]) $(value["clover improved"])")
+    end
+
+
+
     method = Dict()
     methodname = "Guluonic_correlators"
     method["methodname"] = methodname
