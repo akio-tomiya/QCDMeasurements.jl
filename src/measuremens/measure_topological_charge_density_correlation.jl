@@ -3,7 +3,6 @@ mutable struct Topological_charge_density_correlation_measurement{Dim,TG} <: Abs
     #_temporary_gaugefields::Vector{TG}
     _temporary_matrices::Vector{Matrix{ComplexF64}}
     temp_UμνTA::Matrix{Matrix{ComplexF64}}
-    temp_UρσTA::Matrix{Matrix{ComplexF64}}
     Dim::Int8
     #factor::Float64
     verbose_print::Union{Verbose_print,Nothing}
@@ -28,13 +27,11 @@ mutable struct Topological_charge_density_correlation_measurement{Dim,TG} <: Abs
         Dim = length(U)
 
         temp_UμνTA = Array{Matrix{ComplexF64},2}(undef, Dim, Dim)
-        temp_UρσTA = Array{Matrix{ComplexF64},2}(undef, Dim, Dim)
 
 
         for μ = 1:Dim
             for ν = 1:Dim
                 temp_UμνTA[ν, μ] = zeros(ComplexF64, NC, NC)
-                temp_UρσTA[ν, μ] = zeros(ComplexF64, NC, NC)
             end
         end
 
@@ -51,7 +48,6 @@ mutable struct Topological_charge_density_correlation_measurement{Dim,TG} <: Abs
             filename,
             _temporary_matrices,
             temp_UμνTA,
-            temp_UρσTA,
             Dim,
             verbose_print,
             printvalues,
@@ -99,20 +95,30 @@ function measure(
     for i = 1:nummethod
         methodname = m.TC_methods[i]
         if methodname == "plaquette"
-            Qplaq = calculate_topological_charge_plaq(U, loop1position,
-                relativeposition, m.temp_UμνTA, m.temp_UρσTA, temps)
-            push!(values, real(Qplaq))
-            valuedic["plaquette"] = real(Qplaq)
+            Qplaq1 = calculate_topological_charge_plaq(U, loop1position,
+                m.temp_UμνTA, temps)
+            Qplaq2 = calculate_topological_charge_plaq(U, loop1position .+ relativeposition,
+                m.temp_UμνTA, temps)
+            QQ = Qplaq1 * Qplaq2
+            push!(values, QQ)
+            valuedic["plaquette"] = QQ
         elseif methodname == "clover"
-            Qclover = calculate_topological_charge_clover(U, loop1position,
-                relativeposition, m.temp_UμνTA, m.temp_UρσTA, temps)
-            push!(values, real(Qclover))
-            valuedic["clover"] = real(Qclover)
-            Qimproved =
+            Qclover1 = calculate_topological_charge_clover(U, loop1position,
+                m.temp_UμνTA, temps)
+            Qclover2 = calculate_topological_charge_clover(U, loop1position .+ relativeposition,
+                m.temp_UμνTA, temps)
+            QQ = Qclover1 * Qclover2
+            push!(values, QQ)
+            valuedic["clover"] = QQ
+            Qimproved1 =
                 calculate_topological_charge_improved(U, loop1position,
-                    relativeposition, m.temp_UμνTA, m.temp_UρσTA, Qclover, temps)
-            push!(values, real(Qimproved))
-            valuedic["clover improved"] = real(Qimproved)
+                    m.temp_UμνTA, Qclover1, temps)
+            Qimproved2 =
+                calculate_topological_charge_improved(U, loop1position .+ relativeposition,
+                    m.temp_UμνTA, Qclover2, temps)
+            QQ = Qimproved1 * Qimproved2
+            push!(values, QQ)
+            valuedic["clover improved"] = QQ
         else
             error("method $methodname is not supported in topological charge measurement")
         end
@@ -146,49 +152,32 @@ function measure(
     return output
 end
 
-function calculate_topological_charge_plaq(U::Array{T,1}, loop1position,
-    relativeposition, temp_UμνTA, temp_UρσTA,
+function calculate_topological_charge_plaq(U::Array{T,1}, position,
+    temp_UμνTA,
     temps) where {T}
 
     UμνTA = temp_UμνTA
-    position1 = loop1position
     numofloops = calc_UμνTA!(UμνTA,
-        position1,
+        position,
         "plaq", U, temps)
-
-    UρσTA = temp_UρσTA
-    position2 = loop1position .+ relativeposition
-    _ = calc_UμνTA!(UρσTA,
-        position2,
-        "plaq", U, temps)
-
-    Q = calc_Q(UμνTA, UρσTA, numofloops, U)
+    Q = calc_Q_each(UμνTA, numofloops, U)
     return Q
 end
 
-function calculate_topological_charge_clover(U::Array{T,1}, loop1position,
-    relativeposition, temp_UμνTA, temp_UρσTA, temps) where {T}
+function calculate_topological_charge_clover(U::Array{T,1}, position,
+    temp_UμνTA, temps) where {T}
     UμνTA = temp_UμνTA
-    position1 = loop1position
     numofloops = calc_UμνTA!(UμνTA,
-        position1,
+        position,
         "clover", U, temps)
-
-    UρσTA = temp_UρσTA
-    position2 = loop1position .+ relativeposition
-    _ = calc_UμνTA!(UρσTA,
-        position2,
-        "clover", U, temps)
-
-    Q = calc_Q(UμνTA, UρσTA, numofloops, U)
+    Q = calc_Q_each(UμνTA, numofloops, U)
     return Q
 end
 
 function calculate_topological_charge_improved(
     U::Array{T,1},
-    loop1position,
-    relativeposition,
-    temp_UμνTA, temp_UρσTA,
+    position,
+    temp_UμνTA,
     Qclover,
     temps,
 ) where {T}
@@ -196,20 +185,13 @@ function calculate_topological_charge_improved(
     #numofloops = calc_UμνTA!(UμνTA,"clover",U)
     #Qclover = calc_Q(UμνTA,numofloops,U)
 
-    position1 = loop1position
     numofloops = calc_UμνTA!(UμνTA,
-        position1,
-        "rect", U, temps)
-
-    UρσTA = temp_UρσTA
-    position2 = loop1position .+ relativeposition
-    _ = calc_UμνTA!(UρσTA,
-        position2,
+        position,
         "rect", U, temps)
 
     #numofloops = calc_UμνTA!(UμνTA, "rect", U, temps)
 
-    Qrect = 2 * calc_Q(UμνTA, UρσTA, numofloops, U)
+    Qrect = 2 * calc_Q_each(UμνTA, numofloops, U)
     c1 = -1 / 12
     c0 = 5 / 3
     Q = c0 * Qclover + c1 * Qrect
@@ -282,7 +264,7 @@ function calc_UμνTA!(
     return
 end
 
-function calc_Q(UμνTA, UρσTA, numofloops, U::Array{<:AbstractGaugefields{NC,Dim},1}) where {NC,Dim}
+function calc_Q_each(UμνTA, numofloops, U::Array{<:AbstractGaugefields{NC,Dim},1}) where {NC,Dim}
     Q = 0.0
     if Dim == 4
         ε(μ, ν, ρ, σ) = epsilon_tensor(μ, ν, ρ, σ)
@@ -300,7 +282,7 @@ function calc_Q(UμνTA, UρσTA, numofloops, U::Array{<:AbstractGaugefields{NC,
                     if ρ == σ
                         continue
                     end
-                    Uρσ = UρσTA[ρ, σ]
+                    Uρσ = UμνTA[ρ, σ]
                     s = tr(Uμν * Uρσ)
                     Q += ε(μ, ν, ρ, σ) * s / numofloops^2
                 end

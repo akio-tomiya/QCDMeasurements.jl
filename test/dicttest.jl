@@ -27,7 +27,7 @@ function SU3test()
     method = Dict()
     methodname = "Topological_charge_density_correlation"
     method["methodname"] = methodname
-    method["kinds_of_topological_charge"] = ["plaquette", "clover", "clover improved"]
+    method["kinds_of_topological_charge"] = ["plaquette", "clover"]
 
     m = prepare_measurement_from_dict(U, method)
     println("$methodname")
