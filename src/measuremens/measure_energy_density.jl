@@ -31,7 +31,7 @@ mutable struct Energy_density_measurement{Dim,TG} <: AbstractMeasurement
         end
 
 
-        numg = 3
+        numg = 4
         _temporary_gaugefields = Temporalfields(U[1], num=numg)
         #_temporary_gaugefields = Vector{T}(undef, numg)
         #_temporary_gaugefields[1] = similar(U[1])
