@@ -1,6 +1,6 @@
 mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields::Vector{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     temp_g1g2::Vector{TG}
     Dim::Int8
     loop1::Vector{Wilsonline{Dim}}
@@ -37,13 +37,14 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
             temp_g1g2[i] = similar(U[1])
         end
 
-
         numg = 3
-        _temporary_gaugefields = Vector{T}(undef, numg)
-        _temporary_gaugefields[1] = similar(U[1])
-        for i = 2:numg
-            _temporary_gaugefields[i] = similar(U[1])
-        end
+        _temporary_gaugefields = Temporalfields(U[1], num=numg)
+
+        #_temporary_gaugefields = Vector{T}(undef, numg)
+        #_temporary_gaugefields[1] = similar(U[1])
+        #for i = 2:numg
+        #    _temporary_gaugefields[i] = similar(U[1])
+        #end
 
         wloop1 = []
         for loop in loop1

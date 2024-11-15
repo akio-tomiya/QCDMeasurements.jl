@@ -1,6 +1,6 @@
 mutable struct Energy_density_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields::Vector{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     temp_UμνTA::Matrix{TG}
     Dim::Int8
     #factor::Float64
@@ -31,12 +31,13 @@ mutable struct Energy_density_measurement{Dim,TG} <: AbstractMeasurement
         end
 
 
-        numg = 3
-        _temporary_gaugefields = Vector{T}(undef, numg)
-        _temporary_gaugefields[1] = similar(U[1])
-        for i = 2:numg
-            _temporary_gaugefields[i] = similar(U[1])
-        end
+        numg = 4
+        _temporary_gaugefields = Temporalfields(U[1], num=numg)
+        #_temporary_gaugefields = Vector{T}(undef, numg)
+        #_temporary_gaugefields[1] = similar(U[1])
+        #for i = 2:numg
+        #    _temporary_gaugefields[i] = similar(U[1])
+        #end
 
         return new{Dim,T}(
             filename,
@@ -67,7 +68,7 @@ function measure(
     U::Array{<:AbstractGaugefields{NC,Dim},1};
     additional_string="",
 ) where {M<:Energy_density_measurement,NC,Dim}
-    temps = get_temporary_gaugefields(m)
+    temps = m._temporary_gaugefields#get_temporary_gaugefields(m)
     value = calculate_energy_density(U, m.temp_UμνTA, temps)
     measurestring = ""
 
@@ -140,9 +141,10 @@ function calc_large_wilson_loop!(
     temp_Wmat::Array{<:AbstractGaugefields{NC,Dim},2},
     W_operator,
     U::Array{T,1},
-    temps,
+    temps_g,
 ) where {T<:AbstractGaugefields,NC,Dim}
     W = temp_Wmat
+    temps, its_temps = get_temp(temps_g, 4)
     for μ = 1:Dim
         for ν = 1:Dim
             if μ == ν
@@ -155,5 +157,6 @@ function calc_large_wilson_loop!(
             #W[μ,ν] = evaluate_loops(loopset,U)
         end
     end
+    unused!(temps_g, its_temps)
     return
 end

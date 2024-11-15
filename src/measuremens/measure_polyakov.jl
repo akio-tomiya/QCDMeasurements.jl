@@ -1,6 +1,6 @@
 mutable struct Polyakov_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields::Vector{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     Dim::Int8
     #factor::Float64
     verbose_print::Union{Verbose_print,Nothing}
@@ -9,9 +9,9 @@ mutable struct Polyakov_measurement{Dim,TG} <: AbstractMeasurement
 
     function Polyakov_measurement(
         U::Vector{T};
-        filename = nothing,
-        verbose_level = 2,
-        printvalues = false,
+        filename=nothing,
+        verbose_level=2,
+        printvalues=false,
     ) where {T}
         myrank = get_myrank(U)
         #=
@@ -22,7 +22,7 @@ mutable struct Polyakov_measurement{Dim,TG} <: AbstractMeasurement
         end
         =#
         if printvalues
-            verbose_print = Verbose_print(verbose_level, myid = myrank, filename = filename)
+            verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
         else
             verbose_print = nothing
         end
@@ -30,11 +30,12 @@ mutable struct Polyakov_measurement{Dim,TG} <: AbstractMeasurement
 
 
         numg = 2
-        _temporary_gaugefields = Vector{T}(undef, numg)
-        _temporary_gaugefields[1] = similar(U[1])
-        for i = 2:numg
-            _temporary_gaugefields[i] = similar(U[1])
-        end
+        _temporary_gaugefields = Temporalfields(U[1], num=numg)
+        #_temporary_gaugefields = Vector{T}(undef, numg)
+        #_temporary_gaugefields[1] = similar(U[1])
+        #for i = 2:numg
+        #    _temporary_gaugefields[i] = similar(U[1])
+        #end
 
         return new{Dim,T}(filename, _temporary_gaugefields, Dim, verbose_print, printvalues)
 
@@ -44,22 +45,26 @@ end
 function Polyakov_measurement(
     U::Vector{T},
     params::Poly_parameters,
-    filename = "Polyakov.txt",
+    filename="Polyakov.txt",
 ) where {T}
     return Polyakov_measurement(
         U,
-        filename = filename,
-        verbose_level = params.verbose_level,
-        printvalues = params.printvalues,
+        filename=filename,
+        verbose_level=params.verbose_level,
+        printvalues=params.printvalues,
     )
 end
 
 
 
 
-function measure(m::M, U; additional_string = "") where {M<:Polyakov_measurement}
-    temps = get_temporary_gaugefields(m)
-    poly = calculate_Polyakov_loop(U, temps[1], temps[2])
+function measure(m::M, U; additional_string="") where {M<:Polyakov_measurement}
+    temps = m._temporary_gaugefields#  get_temporary_gaugefields(m)
+    temp1, it_temp1 = get_temp(temps)
+    temp2, it_temp2 = get_temp(temps)
+    poly = calculate_Polyakov_loop(U, temp1, temp2)
+    unused!(temps, it_temp1)
+    unused!(temps, it_temp2)
     measurestring = ""
 
     if m.printvalues

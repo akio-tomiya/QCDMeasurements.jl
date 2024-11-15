@@ -2,7 +2,7 @@
 
 mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields::Vector{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     Dim::Int8
     verbose_print::Union{Verbose_print,Nothing}
     printvalues::Bool
@@ -26,7 +26,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
         L5=2,
         M=-1,
         eps_CG=1e-14,
-        MaxCGstep=3000,
+        MaxCGstep=5000,
         BoundaryCondition=nothing,
     ) where {T}
         NC = U[1].NC
@@ -109,11 +109,12 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
 
 
         numg = 1
-        _temporary_gaugefields = Vector{T}(undef, numg)
-        _temporary_gaugefields[1] = similar(U[1])
-        for i = 2:numg
-            _temporary_gaugefields[i] = similar(U[1])
-        end
+        _temporary_gaugefields = Temporalfields(U[1], num=numg)
+        #_temporary_gaugefields = Vector{T}(undef, numg)
+        #_temporary_gaugefields[1] = similar(U[1])
+        #for i = 2:numg
+        #    _temporary_gaugefields[i] = similar(U[1])
+        #end
 
         numf = 2
         TF_vec = typeof(x)

@@ -30,7 +30,7 @@ plaq_m = Plaquette_measurement(U,filename="test.txt",printvalue=true)
 """
 mutable struct Plaquette_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields::Vector{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     Dim::Int8
     factor::Float64
     verbose_print::Union{Verbose_print,Nothing}
@@ -38,9 +38,9 @@ mutable struct Plaquette_measurement{Dim,TG} <: AbstractMeasurement
 
     function Plaquette_measurement(
         U::Vector{T};
-        filename = nothing,
-        verbose_level = 2,
-        printvalues = false,
+        filename=nothing,
+        verbose_level=2,
+        printvalues=false,
     ) where {T}
         myrank = get_myrank(U)
         #=
@@ -51,7 +51,7 @@ mutable struct Plaquette_measurement{Dim,TG} <: AbstractMeasurement
         end
         =#
         if printvalues
-            verbose_print = Verbose_print(verbose_level, myid = myrank, filename = filename)
+            verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
             #println(verbose_print)
             #error("v")
         else
@@ -69,11 +69,12 @@ mutable struct Plaquette_measurement{Dim,TG} <: AbstractMeasurement
         factor = 1 / (comb * U[1].NV * U[1].NC)
 
         numg = 2
-        _temporary_gaugefields = Vector{T}(undef, numg)
-        _temporary_gaugefields[1] = similar(U[1])
-        for i = 2:numg
-            _temporary_gaugefields[i] = similar(U[1])
-        end
+        _temporary_gaugefields = Temporalfields(U[1], num=numg)
+        #_temporary_gaugefields = Vector{T}(undef, numg)
+        #_temporary_gaugefields[1] = similar(U[1])
+        #for i = 2:numg
+        #    _temporary_gaugefields[i] = similar(U[1])
+        #end
 
         return new{Dim,T}(
             filename,
@@ -91,13 +92,13 @@ end
 function Plaquette_measurement(
     U::Vector{T},
     params::Plaq_parameters,
-    filename = "Plaquette.txt",
+    filename="Plaquette.txt",
 ) where {T}
     return Plaquette_measurement(
         U,
-        filename = filename,
-        verbose_level = params.verbose_level,
-        printvalues = params.printvalues,
+        filename=filename,
+        verbose_level=params.verbose_level,
+        printvalues=params.printvalues,
     )
 end
 
@@ -106,9 +107,14 @@ end
 
 
 
-function measure(m::M, U; additional_string = "") where {M<:Plaquette_measurement}
-    temps = get_temporary_gaugefields(m)
-    plaq = real(calculate_Plaquette(U, temps[1], temps[2]) * m.factor)
+function measure(m::M, U; additional_string="") where {M<:Plaquette_measurement}
+    temps = m._temporary_gaugefields#get_temporary_gaugefields(m)
+    temp1, it_temp1 = get_temp(temps)
+    temp2, it_temp2 = get_temp(temps)
+    plaq = real(calculate_Plaquette(U, temp1, temp2) * m.factor)
+    unused!(temps, it_temp1)
+    unused!(temps, it_temp2)
+
     measurestring = ""
 
     if m.printvalues

@@ -1,6 +1,6 @@
 mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields::Vector{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     _temporary_gaugefields_mat::Matrix{TG}
     Dim::Int8
     #factor::Float64
@@ -14,27 +14,28 @@ mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
 
     function Wilson_loop_measurement(
         U::Vector{TG};
-        filename = nothing,
-        verbose_level = 2,
-        printvalues = false,
-        Tmax = 4,
-        Rmax = 4,
+        filename=nothing,
+        verbose_level=2,
+        printvalues=false,
+        Tmax=4,
+        Rmax=4,
     ) where {TG}
         myrank = get_myrank(U)
 
         if printvalues
-            verbose_print = Verbose_print(verbose_level, myid = myrank, filename = filename)
+            verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
         else
             verbose_print = nothing
         end
         Dim = length(U)
 
 
-        numg = 2
-        _temporary_gaugefields = Vector{TG}(undef, numg)
-        for i = 1:numg
-            _temporary_gaugefields[i] = similar(U[1])
-        end
+        numg = 4
+        _temporary_gaugefields = Temporalfields(U[1], num=numg)
+        #_temporary_gaugefields = Vector{TG}(undef, numg)
+        #for i = 1:numg
+        #    _temporary_gaugefields[i] = similar(U[1])
+        #end
 
         _temporary_gaugefields_mat = Matrix{TG}(undef, Dim, Dim)
         for μ = 1:Dim
@@ -72,15 +73,15 @@ end
 function Wilson_loop_measurement(
     U::Vector{T},
     params::Wilson_loop_parameters,
-    filename = "Wilson_loop.txt",
+    filename="Wilson_loop.txt",
 ) where {T}
     return Wilson_loop_measurement(
         U,
-        filename = filename,
-        Tmax = params.Tmax,
-        Rmax = params.Rmax,
-        verbose_level = params.verbose_level,
-        printvalues = params.printvalues,
+        filename=filename,
+        Tmax=params.Tmax,
+        Rmax=params.Rmax,
+        verbose_level=params.verbose_level,
+        printvalues=params.printvalues,
     )
 end
 
@@ -90,9 +91,9 @@ end
 function measure(
     m::Wilson_loop_measurement{Dim,TG},
     U;
-    additional_string = "",
+    additional_string="",
 ) where {Dim,TG}
-    temps = get_temporary_gaugefields(m)
+    temps, its_temps = get_temp(m._temporary_gaugefields, 4)#get_temporary_gaugefields(m)
     NC, _, NN... = size(U[1])
     NV = prod(NN)
     measurestring = ""
@@ -118,6 +119,7 @@ function measure(
             end
         end
     end
+    unused!(m._temporary_gaugefields, its_temps)
 
 
     output = Measurement_output(m.outputvalues, measurestring)
@@ -191,7 +193,7 @@ function calc_large_wiloson_loop!(temp_Wmat, loops_μν, U, temps, Dim)
     W = temp_Wmat
     for μ = 1:Dim-1 # spatial directions
         ν = Dim # T-direction is not summed over
-        evaluate_gaugelinks!(W[μ, ν], loops_μν[μ, ν], U, temps[1:2])
+        evaluate_gaugelinks!(W[μ, ν], loops_μν[μ, ν], U, temps)
     end
     return
 end
