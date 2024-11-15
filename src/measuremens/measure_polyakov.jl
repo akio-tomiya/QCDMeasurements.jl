@@ -61,7 +61,7 @@ end
 function measure(m::M, U; additional_string="") where {M<:Polyakov_measurement}
     temps = m._temporary_gaugefields#  get_temporary_gaugefields(m)
     temp1, it_temp1 = get_temp(temps)
-    temp2, it_temp2 = get_temp(temp2)
+    temp2, it_temp2 = get_temp(temps)
     poly = calculate_Polyakov_loop(U, temp1, temp2)
     unused!(temps, it_temp1)
     unused!(temps, it_temp2)
