@@ -93,7 +93,7 @@ function measure(
     U;
     additional_string="",
 ) where {Dim,TG}
-    temps = get_temporary_gaugefields(m)
+    temps = m._temporary_gaugefields #get_temporary_gaugefields(m)
     NC, _, NN... = size(U[1])
     NV = prod(NN)
     measurestring = ""
@@ -192,7 +192,7 @@ function calc_large_wiloson_loop!(temp_Wmat, loops_μν, U, temps, Dim)
     W = temp_Wmat
     for μ = 1:Dim-1 # spatial directions
         ν = Dim # T-direction is not summed over
-        evaluate_gaugelinks!(W[μ, ν], loops_μν[μ, ν], U, temps[1:2])
+        evaluate_gaugelinks!(W[μ, ν], loops_μν[μ, ν], U, temps)
     end
     return
 end
