@@ -68,7 +68,7 @@ function measure(
     U::Array{<:AbstractGaugefields{NC,Dim},1};
     additional_string="",
 ) where {M<:Energy_density_measurement,NC,Dim}
-    temps = get_temporary_gaugefields(m)
+    temps = m._temporary_gaugefields#get_temporary_gaugefields(m)
     value = calculate_energy_density(U, m.temp_UμνTA, temps)
     measurestring = ""
 
