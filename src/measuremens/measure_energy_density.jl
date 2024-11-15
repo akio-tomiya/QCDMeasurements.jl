@@ -144,7 +144,7 @@ function calc_large_wilson_loop!(
     temps_g,
 ) where {T<:AbstractGaugefields,NC,Dim}
     W = temp_Wmat
-    temps = get_temp(temps_g, 4)
+    temps, its_temps = get_temp(temps_g, 4)
     for μ = 1:Dim
         for ν = 1:Dim
             if μ == ν
@@ -157,5 +157,6 @@ function calc_large_wilson_loop!(
             #W[μ,ν] = evaluate_loops(loopset,U)
         end
     end
+    unused!(temps, its_temps)
     return
 end
