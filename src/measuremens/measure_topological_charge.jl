@@ -33,7 +33,7 @@ mutable struct Topological_charge_measurement{Dim,TG} <: AbstractMeasurement
         end
 
 
-        numg = 3
+        numg = 5
         _temporary_gaugefields = Temporalfields(U[1], num=numg)
         #_temporary_gaugefields = Vector{T}(undef, numg)
         #_temporary_gaugefields[1] = similar(U[1])
@@ -184,23 +184,27 @@ function calc_UμνTA!(
     temp_UμνTA,
     loops_μν,
     U::Array{<:AbstractGaugefields{NC,Dim},1},
-    temps,
+    temps_g,
 ) where {NC,Dim}
     UμνTA = temp_UμνTA
+    temps, its_temps = get_temp(temps_g, 4)
+    temp1, it_temp1 = get_temp(temps_g)
     for μ = 1:Dim
         for ν = 1:Dim
             if ν == μ
                 continue
             end
 
-            evaluate_gaugelinks!(temps[1], loops_μν[μ, ν], U, temps[2:3])
-            Traceless_antihermitian!(UμνTA[μ, ν], temps[1])
+            evaluate_gaugelinks!(temp1, loops_μν[μ, ν], U, temps)
+            Traceless_antihermitian!(UμνTA[μ, ν], temp1)
             #loopset = Loops(U,loops_μν[μ,ν])
             #UμνTA[μ,ν] = evaluate_loops(loopset,U)
 
             #UμνTA[μ,ν] = Traceless_antihermitian(UμνTA[μ,ν])
         end
     end
+    unused!(temps_g, its_temps)
+    unused!(temps_g, it_temp1)
     return
 end
 
