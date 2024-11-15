@@ -80,9 +80,9 @@ function measure(
     U::Array{<:AbstractGaugefields{NC,Dim},1};
     additional_string="",
 ) where {M<:Topological_charge_measurement,NC,Dim}
-    temps = get_temporary_gaugefields(m)
-    temp1 = temps[1]
-    temp2 = temps[2]
+    temps = m._temporary_gaugefields# get_temporary_gaugefields(m)
+    #temp1 = temps[1]
+    #temp2 = temps[2]
     measurestring = ""
 
     nummethod = length(m.TC_methods)

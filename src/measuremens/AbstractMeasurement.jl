@@ -2,6 +2,7 @@ import Gaugefields
 abstract type AbstractMeasurement end
 
 function Gaugefields.get_temporary_gaugefields(m::AbstractMeasurement)
+    set_reusemode!(m._temporary_gaugefields, true)
     return m._temporary_gaugefields
 end
 
