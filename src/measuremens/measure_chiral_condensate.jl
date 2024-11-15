@@ -26,7 +26,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
         L5=2,
         M=-1,
         eps_CG=1e-14,
-        MaxCGstep=3000,
+        MaxCGstep=5000,
         BoundaryCondition=nothing,
         Nr=10,
         order=1,
