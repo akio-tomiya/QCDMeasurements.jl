@@ -1,6 +1,6 @@
 mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields::Vector{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     _temporary_gaugefields_mat::Matrix{TG}
     Dim::Int8
     #factor::Float64
@@ -14,16 +14,16 @@ mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
 
     function Wilson_loop_measurement(
         U::Vector{TG};
-        filename = nothing,
-        verbose_level = 2,
-        printvalues = false,
-        Tmax = 4,
-        Rmax = 4,
+        filename=nothing,
+        verbose_level=2,
+        printvalues=false,
+        Tmax=4,
+        Rmax=4,
     ) where {TG}
         myrank = get_myrank(U)
 
         if printvalues
-            verbose_print = Verbose_print(verbose_level, myid = myrank, filename = filename)
+            verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
         else
             verbose_print = nothing
         end
@@ -31,10 +31,11 @@ mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
 
 
         numg = 2
-        _temporary_gaugefields = Vector{TG}(undef, numg)
-        for i = 1:numg
-            _temporary_gaugefields[i] = similar(U[1])
-        end
+        _temporary_gaugefields = Temporalfields(U[1], num=numg)
+        #_temporary_gaugefields = Vector{TG}(undef, numg)
+        #for i = 1:numg
+        #    _temporary_gaugefields[i] = similar(U[1])
+        #end
 
         _temporary_gaugefields_mat = Matrix{TG}(undef, Dim, Dim)
         for μ = 1:Dim
@@ -72,15 +73,15 @@ end
 function Wilson_loop_measurement(
     U::Vector{T},
     params::Wilson_loop_parameters,
-    filename = "Wilson_loop.txt",
+    filename="Wilson_loop.txt",
 ) where {T}
     return Wilson_loop_measurement(
         U,
-        filename = filename,
-        Tmax = params.Tmax,
-        Rmax = params.Rmax,
-        verbose_level = params.verbose_level,
-        printvalues = params.printvalues,
+        filename=filename,
+        Tmax=params.Tmax,
+        Rmax=params.Rmax,
+        verbose_level=params.verbose_level,
+        printvalues=params.printvalues,
     )
 end
 
@@ -90,7 +91,7 @@ end
 function measure(
     m::Wilson_loop_measurement{Dim,TG},
     U;
-    additional_string = "",
+    additional_string="",
 ) where {Dim,TG}
     temps = get_temporary_gaugefields(m)
     NC, _, NN... = size(U[1])

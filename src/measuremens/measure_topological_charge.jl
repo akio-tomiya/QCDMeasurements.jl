@@ -1,6 +1,6 @@
 mutable struct Topological_charge_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields::Vector{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     temp_UμνTA::Matrix{TG}
     Dim::Int8
     #factor::Float64
@@ -10,15 +10,15 @@ mutable struct Topological_charge_measurement{Dim,TG} <: AbstractMeasurement
 
     function Topological_charge_measurement(
         U::Vector{T};
-        filename = nothing,
-        verbose_level = 2,
-        printvalues = false,
-        TC_methods = ["plaquette"],
+        filename=nothing,
+        verbose_level=2,
+        printvalues=false,
+        TC_methods=["plaquette"],
     ) where {T}
         myrank = get_myrank(U)
 
         if printvalues
-            verbose_print = Verbose_print(verbose_level, myid = myrank, filename = filename)
+            verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
         else
             verbose_print = nothing
         end
@@ -34,11 +34,12 @@ mutable struct Topological_charge_measurement{Dim,TG} <: AbstractMeasurement
 
 
         numg = 3
-        _temporary_gaugefields = Vector{T}(undef, numg)
-        _temporary_gaugefields[1] = similar(U[1])
-        for i = 2:numg
-            _temporary_gaugefields[i] = similar(U[1])
-        end
+        _temporary_gaugefields = Temporalfields(U[1], num=numg)
+        #_temporary_gaugefields = Vector{T}(undef, numg)
+        #_temporary_gaugefields[1] = similar(U[1])
+        #for i = 2:numg
+        #    _temporary_gaugefields[i] = similar(U[1])
+        #end
 
 
 
@@ -61,15 +62,15 @@ end
 function Topological_charge_measurement(
     U::Vector{T},
     params::TopologicalCharge_parameters,
-    filename = "Topological_charge.txt",
+    filename="Topological_charge.txt",
 ) where {T}
 
     return Topological_charge_measurement(
         U,
-        filename = filename,
-        verbose_level = params.verbose_level,
-        printvalues = params.printvalues,
-        TC_methods = params.kinds_of_topological_charge, #["plaquette"]
+        filename=filename,
+        verbose_level=params.verbose_level,
+        printvalues=params.printvalues,
+        TC_methods=params.kinds_of_topological_charge, #["plaquette"]
     )
 
 end
@@ -77,7 +78,7 @@ end
 function measure(
     m::M,
     U::Array{<:AbstractGaugefields{NC,Dim},1};
-    additional_string = "",
+    additional_string="",
 ) where {M<:Topological_charge_measurement,NC,Dim}
     temps = get_temporary_gaugefields(m)
     temp1 = temps[1]
@@ -299,7 +300,7 @@ function calc_loopset_μν_name(name, Dim)
                 if ν == μ
                     continue
                 end
-                plaq = make_plaq(μ, ν, Dim = Dim)
+                plaq = make_plaq(μ, ν, Dim=Dim)
                 push!(loops_μν[μ, ν], plaq)
             end
         end
@@ -311,7 +312,7 @@ function calc_loopset_μν_name(name, Dim)
                 if ν == μ
                     continue
                 end
-                loops_μν[μ, ν] = make_cloverloops_topo(μ, ν, Dim = Dim)
+                loops_μν[μ, ν] = make_cloverloops_topo(μ, ν, Dim=Dim)
             end
         end
     elseif name == "rect"
@@ -350,7 +351,7 @@ function calc_loopset_μν_name(name, Dim)
 end
 
 
-function make_cloverloops_topo(μ, ν; Dim = 4)
+function make_cloverloops_topo(μ, ν; Dim=4)
     loops = Wilsonline{Dim}[]
     loop_righttop = Wilsonline([(μ, 1), (ν, 1), (μ, -1), (ν, -1)])
     loop_lefttop = Wilsonline([(ν, 1), (μ, -1), (ν, -1), (μ, 1)])
