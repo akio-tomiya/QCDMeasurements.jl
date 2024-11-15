@@ -119,7 +119,7 @@ function measure(
             end
         end
     end
-    unused!(temps, its_temps)
+    unused!(m._temporary_gaugefields, its_temps)
 
 
     output = Measurement_output(m.outputvalues, measurestring)
