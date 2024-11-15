@@ -30,7 +30,7 @@ mutable struct Wilson_loop_measurement{Dim,TG} <: AbstractMeasurement
         Dim = length(U)
 
 
-        numg = 2
+        numg = 4
         _temporary_gaugefields = Temporalfields(U[1], num=numg)
         #_temporary_gaugefields = Vector{TG}(undef, numg)
         #for i = 1:numg
@@ -93,7 +93,7 @@ function measure(
     U;
     additional_string="",
 ) where {Dim,TG}
-    temps = m._temporary_gaugefields #get_temporary_gaugefields(m)
+    temps, its_temps = get_temp(m._temporary_gaugefields, 4)#get_temporary_gaugefields(m)
     NC, _, NN... = size(U[1])
     NV = prod(NN)
     measurestring = ""
@@ -119,6 +119,7 @@ function measure(
             end
         end
     end
+    unused!(temps, its_temps)
 
 
     output = Measurement_output(m.outputvalues, measurestring)
