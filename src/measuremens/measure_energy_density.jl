@@ -157,6 +157,6 @@ function calc_large_wilson_loop!(
             #W[μ,ν] = evaluate_loops(loopset,U)
         end
     end
-    unused!(temps, its_temps)
+    unused!(temps_g, its_temps)
     return
 end
