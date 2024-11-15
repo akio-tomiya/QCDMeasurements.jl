@@ -108,8 +108,13 @@ end
 
 
 function measure(m::M, U; additional_string="") where {M<:Plaquette_measurement}
-    temps = get_temporary_gaugefields(m)
-    plaq = real(calculate_Plaquette(U, temps[1], temps[2]) * m.factor)
+    temps = m._temporary_gaugefields#get_temporary_gaugefields(m)
+    temp1, it_temp1 = get_temp(temps)
+    temp2, it_temp2 = get_temp(temp2)
+    plaq = real(calculate_Plaquette(U, temp1, temp2) * m.factor)
+    unused!(temps, it_temp1)
+    unused!(temps, it_temp2)
+
     measurestring = ""
 
     if m.printvalues
