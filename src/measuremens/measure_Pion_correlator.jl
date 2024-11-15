@@ -26,7 +26,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
         L5=2,
         M=-1,
         eps_CG=1e-14,
-        MaxCGstep=3000,
+        MaxCGstep=5000,
         BoundaryCondition=nothing,
     ) where {T}
         NC = U[1].NC
