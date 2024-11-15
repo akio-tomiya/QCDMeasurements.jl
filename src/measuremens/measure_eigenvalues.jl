@@ -1,6 +1,6 @@
 mutable struct Eigenvalue_measurement{Dim,TG,TD} <: AbstractMeasurement
     filename::Union{Nothing,String}
-    _temporary_gaugefields:Temporalfields{TG}
+    _temporary_gaugefields::Temporalfields{TG}
     Dim::Int8
     #factor::Float64
     verbose_print::Union{Verbose_print,Nothing}
