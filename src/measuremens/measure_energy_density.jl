@@ -141,9 +141,10 @@ function calc_large_wilson_loop!(
     temp_Wmat::Array{<:AbstractGaugefields{NC,Dim},2},
     W_operator,
     U::Array{T,1},
-    temps,
+    temps_g,
 ) where {T<:AbstractGaugefields,NC,Dim}
     W = temp_Wmat
+    temps = get_temp(temps_g, 4)
     for μ = 1:Dim
         for ν = 1:Dim
             if μ == ν
