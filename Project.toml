@@ -15,6 +15,7 @@ Arpack = "0.5"
 Gaugefields = "0.4,0.5"
 Wilsonloop = "0.1.5"
 julia = "1.10"
+LatticeDiracOperators = "0.3,0.4"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
