@@ -102,6 +102,8 @@ Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     Nf::Int64 = 4
     eps::Float64 = 1e-19
     mass::Float64 = 0.5
+    L5::Int64 = 4
+    M::Float64 = -1
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
     stout_numlayers::Union{Nothing,Int64} = nothing

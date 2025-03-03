@@ -43,8 +43,10 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
             boundarycondition = BoundaryCondition
         end
 
-        params, parameters_action, x, factor = make_fermionparameter_dict(U,
-            fermiontype, mass,
+        params, parameters_action, x, factor = make_fermionparameter_dict(
+            U,
+            fermiontype,
+            mass,
             Nf,
             κ,
             r,
@@ -72,11 +74,11 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
             params["r"] = r
             params["faster version"] = true
         elseif fermiontype == "Domainwall"
+            x = Initialize_pseudofermion_fields(U[1], "Domainwall", L5 = L5)
             params["Dirac_operator"] = "Domainwall"
             params["mass"] = mass
             params["L5"] = L5
             params["M"] = M
-            x = Initialize_pseudofermion_fields(U[1], "Domainwall", L5 = L5)
         else
             error(
                 "fermion type $fermiontype is not supported in chiral condensate measurement",
@@ -169,6 +171,20 @@ function Chiral_condensate_measurement(
             MaxCGstep=params.MaxCGstep,
             Nr=params.Nr,
         )
+    elseif params.fermiontype == "Domainwall"
+        method = Chiral_condensate_measurement(
+            U;
+            filename=filename,
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            mass=params.mass,
+            L5=params.L5,
+            M=params.M,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+            Nr=params.Nr,
+        )
     else
         error("$(params.fermiontype) is not supported in Chiral_condensate_measurement")
     end
@@ -200,7 +216,9 @@ function measure(
     for ir = 1:Nr
         clear_fermion!(p)
         Z4_distribution_fermi!(r)
+        apply_P!(r,r)
         solve_DinvX!(p, D, r)
+        apply_J!(p,p)
         tmp = dot(r, p) # hermitian inner product
         if m.order != 1
             tmps[1] = tmp
@@ -213,7 +231,7 @@ function measure(
         end
 
         if m.printvalues
-            #println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand chiralcond")
+            # println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand chiralcond")
             measurestring_ir = "# $ir $additional_string $(real(tmp)/U[1].NV) # itrj irand chiralcond"
             if m.order != 1
                 measurestring_ir = "# $ir $additional_string"
