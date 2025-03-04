@@ -85,9 +85,9 @@ Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
     eps::Float64 = 1e-19
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
-    stout_numlayers::Union{Nothing,Int64} = nothing
-    stout_ρ::Union{Nothing,Array{Float64,1}} = nothing
-    stout_loops::Union{Nothing,Array{String,1}} = nothing
+    stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
+    stout_ρ::Array{Float64,1} = Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Array{String,1} = Vector{String}(undef, 1)#Union{Nothing,Array{String,1}} = nothing
     #smearing::Smearing_parameters = NoSmearing_parameters()
     fermion_parameters::Fermion_parameters = Wilson_parameters()
     verbose_level::Int64 = 2
@@ -104,9 +104,9 @@ Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     mass::Float64 = 0.5
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
-    stout_numlayers::Union{Nothing,Int64} = nothing
-    stout_ρ::Union{Nothing,Array{Float64,1}} = nothing
-    stout_loops::Union{Nothing,Array{String,1}} = nothing
+    stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
+    stout_ρ::Vector{Float64} = Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Vector{String} = Vector{String}(undef, 1)#Union{Nothing,Array{String,1}} = nothing
     verbose_level::Int64 = 2
     printvalues::Bool = true
     Nr = 10
@@ -179,9 +179,9 @@ Base.@kwdef mutable struct Eigenvalue_parameters <: Measurement_parameters
     eps::Float64 = 1e-19
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
-    stout_numlayers::Union{Nothing,Int64} = nothing
-    stout_ρ::Union{Nothing,Array{Float64,1}} = nothing
-    stout_loops::Union{Nothing,Array{String,1}} = nothing
+    stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
+    stout_ρ::Array{Float64,1} = Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Array{String,1} = Vector{String}(undef, 1)#Union{Nothing,Array{String,1}} = nothing
     #smearing::Smearing_parameters = NoSmearing_parameters()
     fermion_parameters::Fermion_parameters = Wilson_parameters()
     verbose_level::Int64 = 2
@@ -231,7 +231,7 @@ function construct_Measurement_parameters_from_dict(value_i::Dict)
     methodname = value_i["methodname"]
     method = initialize_measurement_parameters(methodname)
     method_dict = struct2dict(method)
-    #println("value_i ",value_i)
+    #println("value_i ", value_i, haskey(value_i, "Dirac_operator"), value_i["Dirac_operator"])
     if haskey(value_i, "Dirac_operator")
         fermiontype = value_i["Dirac_operator"]
     else
@@ -247,8 +247,10 @@ function construct_Measurement_parameters_from_dict(value_i::Dict)
             #fermiontype = "nothing"
         end
     end
+    method.fermiontype = fermiontype
     #println("fermiontype $fermiontype")
     fermion_parameters = initialize_fermion_parameters(fermiontype)
+    #println(fermion_parameters)
     fermion_parameters_dict = struct2dict(fermion_parameters)
     #println("femriontype ",fermiontype)
 
@@ -256,6 +258,7 @@ function construct_Measurement_parameters_from_dict(value_i::Dict)
         #println("$key_ii $value_ii")
         if haskey(method_dict, key_ii)
             if typeof(value_ii) != Nothing
+                #println(getfield(method, Symbol(key_ii)), Symbol(key_ii))
                 keytype = typeof(getfield(method, Symbol(key_ii)))
                 setfield!(method, Symbol(key_ii), keytype(value_ii))
             end
@@ -274,6 +277,7 @@ function construct_Measurement_parameters_from_dict(value_i::Dict)
         setfield!(method, Symbol("fermion_parameters"), fermion_parameters)
     end
     value_out = deepcopy(method)
+    #println(value_out)
 
     return value_out
 end
@@ -366,6 +370,8 @@ end
 
 function fermionparameter_params(params)
     fermionparameters = params.fermion_parameters
+    #println(fermionparameters)
+    #println(params)
     if params.fermiontype == "Staggered"
         params_tuple = (
             verbose_level=params.verbose_level,

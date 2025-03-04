@@ -150,6 +150,8 @@ function Pion_correlator_measurement(
         error("smearing is not implemented in Pion correlator")
     end
 
+    #println(params)
+
     params_tuple = fermionparameter_params(params)
 
     fermionparameters = params.fermion_parameters
