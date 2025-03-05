@@ -1,6 +1,6 @@
 
 
-mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: AbstractMeasurement
+mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: AbstractMeasurement
     filename::Union{Nothing,String}
     _temporary_gaugefields::Temporalfields{TG}
     Dim::Int8
@@ -12,6 +12,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
     #Nr::Int64
     Nspinor::Int64
     S::Array{ComplexF64,Dim_2}
+    cov_neural_net::TCov#Union{Nothing,CovNeuralnet}
 
     function Pion_correlator_measurement(
         U::Vector{T};
@@ -28,6 +29,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
         eps_CG=1e-14,
         MaxCGstep=5000,
         BoundaryCondition=nothing,
+        cov_neural_net=nothing
     ) where {T}
         NC = U[1].NC
 
@@ -96,7 +98,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
         TD = typeof(D)
         TF = typeof(fermi_action)
 
-
+        TCov = typeof(cov_neural_net)
 
         myrank = get_myrank(U)
 
@@ -124,7 +126,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
         end
         Dim_2 = Dim + 2
 
-        return new{Dim,T,TD,TF,TF_vec,Dim_2}(
+        return new{Dim,T,TD,TF,TF_vec,Dim_2,TCov}(
             filename, #::String
             _temporary_gaugefields,#::Vector{TG}
             Dim,#::Int8
@@ -135,6 +137,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
             _temporary_fermionfields,#::Vector{TF_vec}
             Nspinor,#::Int64
             S,#::Array{ComplexF64,3}
+            cov_neural_net,
         )
     end
 
@@ -146,8 +149,34 @@ function Pion_correlator_measurement(
     filename="Pion_correlator.txt",
 ) where {T}
 
-    if params.smearing_for_fermion != "nothing"
-        error("smearing is not implemented in Pion correlator")
+    #if params.smearing_for_fermion != "nothing"
+    #    error("smearing is not implemented in Pion correlator")
+    #end
+
+    if params.smearing_for_fermion == "nothing"
+        cov_neural_net = nothing
+    elseif params.smearing_for_fermion == "stout"
+        cov_neural_net = CovNeuralnet(U)
+        if params.stout_numlayers == 1
+            #st = STOUT_Layer(p.stout_loops, p.stout_ρ, L)
+            st = STOUT_Layer(params.stout_loops, params.stout_ρ, U)
+            push!(cov_neural_net, st)
+        else
+            if length(params.stout_ρ) == 1
+                @warn "num. of stout layer is $(params.stout_numlayers) but there is only one rho. rho values are all same."
+                for ilayer = 1:length(params.stout_ρ)
+                    st = STOUT_Layer(params.stout_loops, params.stout_ρ, U)
+                    push!(cov_neural_net, st)
+                end
+            else
+                for ilayer = 1:length(params.stout_ρ)
+                    st = STOUT_Layer(params.stout_loops, params.stout_ρ[ilayer], U)
+                    push!(cov_neural_net, st)
+                end
+            end
+        end
+    else
+        error("params.smearing_for_fermion = $(params.smearing_for_fermion) is not supported")
     end
 
     #println(params)
@@ -158,7 +187,9 @@ function Pion_correlator_measurement(
     if params.fermiontype == "Staggered"
         method = Pion_correlator_measurement(
             U;
-            filename=filename, params_tuple...
+            filename=filename,
+            cov_neural_net=cov_neural_net,
+            params_tuple...
             #=
             verbose_level = params.verbose_level,
             printvalues = params.printvalues,
@@ -176,6 +207,7 @@ function Pion_correlator_measurement(
         method = Pion_correlator_measurement(
             U;
             filename=filename,
+            cov_neural_net=cov_neural_net,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -192,6 +224,7 @@ function Pion_correlator_measurement(
         method = Pion_correlator_measurement(
             U;
             filename=filename,
+            cov_neural_net=cov_neural_net,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -229,7 +262,13 @@ function measure(
     Nspinor = m.Nspinor
     #D = m.D(U)
     # calculate quark propagators from a point source at he origin
-    propagators, st = calc_quark_propagators_point_source(m, U)
+    if m.cov_neural_net === nothing
+        propagators, st = calc_quark_propagators_point_source(m, U)
+    else
+        Uout, Uout_multi, _ = calc_smearedU(U, m.cov_neural_net)
+        println("smeared U is used in Pion measurement")
+        propagators, st = calc_quark_propagators_point_source(m, Uout)
+    end
     measurestring *= st * "\n"
     #=
     #println(propagators)

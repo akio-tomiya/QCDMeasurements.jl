@@ -1,5 +1,5 @@
 using LinearAlgebra
-mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMeasurement
+mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: AbstractMeasurement
     filename::Union{Nothing,String}
     _temporary_gaugefields::Temporalfields{TG}
     Dim::Int8
@@ -12,6 +12,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
     Nr::Int64
     factor::Float64
     order::Int64
+    cov_neural_net::TCov
 
     function Chiral_condensate_measurement(
         U::Vector{T};
@@ -30,6 +31,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
         BoundaryCondition=nothing,
         Nr=10,
         order=1,
+        cov_neural_net=nothing
     ) where {T}
 
         Dim = length(U)
@@ -94,6 +96,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
         TD = typeof(D)
         TF = typeof(fermi_action)
 
+        TCov = typeof(cov_neural_net)
 
 
         myrank = get_myrank(U)
@@ -131,7 +134,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
             _temporary_fermionfields[i] = similar(x)
         end
 
-        return new{Dim,T,TD,TF,TF_vec}(
+        return new{Dim,T,TD,TF,TF_vec,TCov}(
             filename,
             _temporary_gaugefields,
             Dim,
@@ -142,7 +145,8 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
             _temporary_fermionfields,
             Nr,
             factor,
-            order
+            order,
+            cov_neural_net
         )
 
     end
@@ -156,6 +160,33 @@ function Chiral_condensate_measurement(
     params::ChiralCondensate_parameters,
     filename="Chiral_condensate.txt",
 ) where {T}
+
+    if params.smearing_for_fermion == "nothing"
+        cov_neural_net = nothing
+    elseif params.smearing_for_fermion == "stout"
+        cov_neural_net = CovNeuralnet(U)
+        if params.stout_numlayers == 1
+            #st = STOUT_Layer(p.stout_loops, p.stout_ρ, L)
+            st = STOUT_Layer(params.stout_loops, params.stout_ρ, U)
+            push!(cov_neural_net, st)
+        else
+            if length(params.stout_ρ) == 1
+                @warn "num. of stout layer is $(params.stout_numlayers) but there is only one rho. rho values are all same."
+                for ilayer = 1:length(params.stout_ρ)
+                    st = STOUT_Layer(params.stout_loops, params.stout_ρ, U)
+                    push!(cov_neural_net, st)
+                end
+            else
+                for ilayer = 1:length(params.stout_ρ)
+                    st = STOUT_Layer(params.stout_loops, params.stout_ρ[ilayer], U)
+                    push!(cov_neural_net, st)
+                end
+            end
+        end
+    else
+        error("params.smearing_for_fermion = $(params.smearing_for_fermion) is not supported")
+    end
+
     if params.fermiontype == "Staggered"
         method = Chiral_condensate_measurement(
             U;
@@ -168,6 +199,7 @@ function Chiral_condensate_measurement(
             eps_CG=params.eps,
             MaxCGstep=params.MaxCGstep,
             Nr=params.Nr,
+            cov_neural_net=cov_neural_net,
         )
     else
         error("$(params.fermiontype) is not supported in Chiral_condensate_measurement")
@@ -186,7 +218,16 @@ function measure(
     temps_fermi = get_temporary_fermionfields(m)
     p = temps_fermi[1]
     r = temps_fermi[2]
-    D = m.D(U)
+
+    if m.cov_neural_net === nothing
+        D = m.D(U)
+    else
+        Uout, Uout_multi, _ = calc_smearedU(U, m.cov_neural_net)
+        println("smeared U is used in chiral measurement")
+        D = m.D(Uout)
+    end
+
+
     pbp = 0.0
     #Nr = 100
     Nr = m.Nr
