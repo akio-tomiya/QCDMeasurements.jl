@@ -86,8 +86,12 @@ Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
     stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
-    stout_ρ::Array{Float64,1} = Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
-    stout_loops::Array{String,1} = Vector{String}(undef, 1)#Union{Nothing,Array{String,1}} = nothing
+    stout_ρ::Array{Float64,1} = zeros(1)#Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Array{String,1} = [""] #Vector{String}(undef, 1)#Union{Nothing,Array{String,1}} = nothing
+    #stout_numlayers::Union{Nothing,Int64} = nothing
+    #stout_ρ::Union{Nothing,Array{Float64,1}} = nothing
+    #stout_loops::Union{Nothing,Array{String,1}} = nothing
+
     #smearing::Smearing_parameters = NoSmearing_parameters()
     fermion_parameters::Fermion_parameters = Wilson_parameters()
     verbose_level::Int64 = 2
@@ -104,9 +108,13 @@ Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     mass::Float64 = 0.5
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
+
     stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
-    stout_ρ::Vector{Float64} = Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
-    stout_loops::Vector{String} = Vector{String}(undef, 1)#Union{Nothing,Array{String,1}} = nothing
+    stout_ρ::Vector{Float64} = zeros(1)#Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Vector{String} = [""] #Vector{String}(undef, 1)#Union{Nothing,Array{String,1}} = nothing
+    #stout_numlayers::Union{Nothing,Int64} = nothing
+    #stout_ρ::Union{Nothing,Array{Float64,1}} = nothing
+    #stout_loops::Union{Nothing,Array{String,1}} = nothing
     verbose_level::Int64 = 2
     printvalues::Bool = true
     Nr = 10
@@ -258,7 +266,7 @@ function construct_Measurement_parameters_from_dict(value_i::Dict)
         #println("$key_ii $value_ii")
         if haskey(method_dict, key_ii)
             if typeof(value_ii) != Nothing
-                #println(getfield(method, Symbol(key_ii)), Symbol(key_ii))
+                #println(getfield(method, Symbol(key_ii)), "\t", Symbol(key_ii), "\t", value_ii)
                 keytype = typeof(getfield(method, Symbol(key_ii)))
                 setfield!(method, Symbol(key_ii), keytype(value_ii))
             end
