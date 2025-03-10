@@ -4,7 +4,7 @@ using Gaugefields
 using LatticeDiracOperators
 using Arpack
 import LatticeDiracOperators.Dirac_operators:
-    clear_fermion!, AbstractFermionfields_4D, Z4_distribution_fermi!
+    clear_fermion!, AbstractFermionfields_4D, Z4_distribution_fermi!, apply_P!, apply_R!
 import Gaugefields.Temporalfields_module: Temporalfields,
     get_temp, unused!, set_reusemode!
 
