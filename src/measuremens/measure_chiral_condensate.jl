@@ -93,8 +93,15 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: Abstra
         params["MaxCGstep"] = MaxCGstep
         params["boundarycondition"] = boundarycondition
 
-        D = Dirac_operator(U, x, params)
-        fermi_action = FermiAction(D, parameters_action)
+        if fermiontype == "Domainwall"
+            D5 = Dirac_operator(U, x, params)
+            D = D5.D5DW(U)
+            fermi_action = FermiAction(D5, parameters_action)
+        else
+            D = Dirac_operator(U, x, params)
+            fermi_action = FermiAction(D, parameters_action)
+        end
+
         TD = typeof(D)
         TF = typeof(fermi_action)
 
@@ -257,10 +264,19 @@ function measure(
     for ir = 1:Nr
         clear_fermion!(p)
         Z4_distribution_fermi!(r)
-        apply_P!(r,r)
-        solve_DinvX!(p, D, r)
-        apply_J!(p,p)
-        tmp = dot(r, p) # hermitian inner product
+        r2 = similar(r)
+        # p2 = similar(p)
+        temp = similar(r)
+        apply_P!(r2, r.L5, r, temp)
+        # apply_P!(p2, p.L5, p, temp)
+        apply_R!(p, r2)
+        solve_DinvX!(r, D, p)
+        tmp = dot(r2, r) # hermitian inner product
+        
+        # clear_fermion!(p)
+        # Z4_distribution_fermi!(r)
+        # solve_DinvX!(p, D, r)
+        # tmp = dot(r, p) # hermitian inner product
         if m.order != 1
             tmps[1] = tmp
             for i = 2:m.order
