@@ -25,6 +25,50 @@ function SU3test()
     =#
 
     method = Dict()
+    methodname = "MdagMspectrum"
+    method["methodname"] = methodname
+    method["fermiontype"] = "Staggered"
+    method["mass"] = 0.5
+    method["Nf"] = 4
+    method["emin"] = 0
+    method["emax"] = 1
+    method["eta"] = 0.005
+    method["numpoints"] = 3000
+    method["position"] = (1, 1)
+    m = prepare_measurement_from_dict(U, method, "MdagMspectrum_11.txt")
+    energies, value = get_value(measure(m, U)) #Mdagm spectrum
+
+    npoints = 3000
+    valuesum = zeros(npoints)
+    energies = zeros(npoints)
+    for i = 1:prod(L)
+        println("i = $i")
+        method = Dict()
+        methodname = "MdagMspectrum"
+        method["methodname"] = methodname
+        method["fermiontype"] = "Staggered"
+        method["mass"] = 0.5
+        method["Nf"] = 4
+        method["emin"] = 0
+        method["emax"] = 1
+        method["eta"] = 0.003
+        method["numpoints"] = npoints
+        method["position"] = (i, i)
+        m = prepare_measurement_from_dict(U, method, "MdagMspectrum_tmp.txt")
+        energies, value = get_value(measure(m, U)) #Mdagm spectrum
+        valuesum += value
+
+        fp = open("MdagMspectrum_sum.txt", "w")
+        for n = 1:npoints
+            println(fp, energies[n], "\t", valuesum[n] / i)
+        end
+        close(fp)
+    end
+
+
+
+
+    method = Dict()
     methodname = "Topological_charge_density_correlation"
     method["methodname"] = methodname
     method["kinds_of_topological_charge"] = ["plaquette", "clover"]
@@ -107,6 +151,7 @@ function SU3test()
     m = prepare_measurement_from_dict(U, method)
     value, vectors = get_value(measure(m, U)) #eigenvalues and eigenvectors
     println("$methodname $value")
+
 
 
     method = Dict()

@@ -131,6 +131,8 @@ Base.@kwdef mutable struct Energy_density_parameters <: Measurement_parameters
 end
 
 
+
+
 Base.@kwdef mutable struct Correlation_parameters <: Measurement_parameters
     methodname::String = "Correlation"
     measure_every::Int64 = 10
@@ -198,6 +200,30 @@ Base.@kwdef mutable struct Eigenvalue_parameters <: Measurement_parameters
     which::Symbol = :SM # :SM smallest magnitude
 end
 
+Base.@kwdef mutable struct MdagMspectrum_parameters <: Measurement_parameters
+    #common::Measurement_common_parameters = Measurement_common_parameters()
+    methodname::String = "MdagMspectrum"
+    measure_every::Int64 = 10
+    fermiontype::String = "Wilson"
+    eps::Float64 = 1e-19
+    MaxCGstep::Int64 = 3000
+    smearing_for_fermion::String = "nothing"
+    stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
+    stout_ρ::Array{Float64,1} = Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Array{String,1} = Vector{String}(undef, 1)#Union{Nothing,Array{String,1}} = nothing
+    #smearing::Smearing_parameters = NoSmearing_parameters()
+    fermion_parameters::Fermion_parameters = Wilson_parameters()
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    emin::Float64 = -2
+    emax::Float64 = 2
+    eta::Float64 = 0.01
+    numpoints::Int64 = 3000
+    position::Tuple{Int64,Int64} = (1, 1)
+
+end
+
+
 function initialize_measurement_parameters(methodname)
     if methodname == "Plaquette"
         method = Plaq_parameters()
@@ -221,6 +247,8 @@ function initialize_measurement_parameters(methodname)
         method = Wilson_loop_parameters()
     elseif methodname == "Eigenvalue"
         method = Eigenvalue_parameters()
+    elseif methodname == "MdagMspectrum"
+        method = MdagMspectrum_parameters()
     else
         @error "$methodname is not implemented in parameter_structs.jl"
     end
@@ -328,6 +356,9 @@ function prepare_measurement(U, measurement_parameters::T, filename="") where {T
     elseif T == Eigenvalue_parameters
         filename_input = ifelse(filename == "", "Eigenvalues.txt", filename)
         measurement = Eigenvalue_measurement(U, measurement_parameters, filename_input)
+    elseif T == MdagMspectrum_parameters
+        filename_input = ifelse(filename == "", "MdagMspectrum.txt", filename)
+        measurement = MdagMspectrum_measurement(U, measurement_parameters, filename_input)
     else
         error(T, " is not supported in measurements")
     end
