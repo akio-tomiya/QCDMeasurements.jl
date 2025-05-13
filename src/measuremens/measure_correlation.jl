@@ -1,3 +1,5 @@
+
+
 mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
     filename::Union{Nothing,String}
     _temporary_gaugefields::Temporalfields{TG}
@@ -37,7 +39,7 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
             temp_g1g2[i] = similar(U[1])
         end
 
-        numg = 3
+        numg = 4
         _temporary_gaugefields = Temporalfields(U[1], num=numg)
 
         #_temporary_gaugefields = Vector{T}(undef, numg)
@@ -54,6 +56,7 @@ mutable struct Correlation_measurement{Dim,TG} <: AbstractMeasurement
         for loop in loop2
             push!(wloop2, Wilsonline(loop))
         end
+        #println("originonly = $originonly")
 
         return new{Dim,T}(
             filename,
@@ -143,7 +146,8 @@ function measure(
         #end
         #println(value)
     else
-        temps = get_temporary_gaugefields(m)
+        #temps = get_temporary_gaugefields(m)
+        temps, its_temps = get_temp(m._temporary_gaugefields, 4)
         g1 = m.temp_g1g2[1]
         g2 = m.temp_g1g2[2]
 
@@ -159,6 +163,7 @@ function measure(
             temps[1])
 
         value = tr(g1)
+        unused!(m._temporary_gaugefields, its_temps)
     end
 
     measurestring = ""
