@@ -451,8 +451,8 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     #println(dot(b,b))
     #println("ic = $ic is = $is")
     iorigin = (1, 1, 1, 1)
-    # setindex_global!(b, v, ic, iorigin..., is)  # source at the origin
-    setindex!(b, v, ic, iorigin..., is, 1)  # for domain wall fermion
+    setindex_global!(b, v, ic, iorigin..., is)  # source at the origin
+    # setindex!(b, v, ic, iorigin..., is, 1)  # for domain wall fermion
 
     #=
     mul!(p,D,b)
@@ -476,7 +476,7 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     #Z4_distribution_fermi!(b)
     #error("dd")
 
-    # ここはdomain wall用
+    # domain wall用
     # c = similar(b)
     # apply_P!(c,b)
     # d = similar(b)

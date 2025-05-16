@@ -3,11 +3,10 @@ mutable struct Residual_mass_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMeasure
     filename::Union{Nothing,String}
     _temporary_gaugefields::Temporalfields{TG}
     Dim::Int8
-    #factor::Float64
+    mass::Float64
     verbose_print::Union{Verbose_print,Nothing}
     printvalues::Bool
     D::TD
-    # D0::TD #追加、0質量ドメインウォールのDirac演算子
     fermi_action::TF
     _temporary_fermionfields::Vector{TF_vec}
     Nr::Int64
@@ -58,37 +57,19 @@ mutable struct Residual_mass_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMeasure
             b,
             c
         )
-        
-        #追加: 質量0のパラメータ
-        # params0 = first(make_fermionparameter_dict(
-        #     U,
-        #     fermiontype,
-        #     0,
-        #     Nf,
-        #     κ,
-        #     r,
-        #     L5,
-        #     M,
-        # ))
 
         params["eps_CG"] = eps_CG
         params["verbose_level"] = verbose_level
         params["MaxCGstep"] = MaxCGstep
         params["boundarycondition"] = boundarycondition
 
-        #Domain wall用
+        
         D = Dirac_operator(U, x, params)
-        # D0 = Dirac_operator(U, x, params0) #ここのxは、Initialize_pseudofermion_fieldsなので、上と同一で良い
         fermi_action = FermiAction(D, parameters_action)
-
-        #Staggered用
-        # D = Dirac_operator(U, x, params)
-        # fermi_action = FermiAction(D, parameters_action)
 
 
         TD = typeof(D)
         TF = typeof(fermi_action)
-
 
 
         myrank = get_myrank(U)
@@ -130,10 +111,10 @@ mutable struct Residual_mass_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMeasure
             filename,
             _temporary_gaugefields,
             Dim,
+            mass,
             verbose_print,
             printvalues,
             D,#::TD
-            # D0,
             fermi_action,#::TF,
             _temporary_fermionfields,
             Nr,
@@ -182,19 +163,6 @@ function Residual_mass_measurement(
             MaxCGstep=params.MaxCGstep,
             Nr=params.Nr,
         )
-    elseif params.fermiontype == "Staggered"
-        method = Residual_mass_measurement(
-            U;
-            filename=filename,
-            verbose_level=params.verbose_level,
-            printvalues=params.printvalues,
-            fermiontype=params.fermiontype,
-            mass=params.mass,
-            Nf=params.Nf,
-            eps_CG=params.eps,
-            MaxCGstep=params.MaxCGstep,
-            Nr=params.Nr,
-        )
     else
         error("$(params.fermiontype) is not supported in Residual_mass_measurement")
     end
@@ -213,13 +181,8 @@ function measure(
     p = temps_fermi[1]
     q = temps_fermi[2]
 
-    #Domainwall用
     D = m.D.D5DW(U)
-    # DPV = m.D.D5DW_PV(U)
-    # D0 = m.D0.D5DW(U)
-
-    #Staggered用
-    # D = m.D(U)
+    mass = m.mass
 
     pbp = 0.0
     Nr = m.Nr
@@ -239,35 +202,10 @@ function measure(
         apply_P_edge!(t,s)
         den = dot(t,t)
 
-        # r1 = similar(p)
-        # mul!(r1, DPV, q) #ここは,PV->D_4^{-1},R->Gが対応する
-        # s1 = similar(p)
-        # solve_DinvX!(s1, D, r1)
-        # t1 = similar(p)
-        # apply_P_edge!(t1, s1)
-        # u1 = similar(p)
-        # mul!(u1, D0, t1)
-        # v1 = similar(p)
-        # solve_DinvX!(v1, DPV, u1)
-        # w1 = similar(p)
-        # apply_P_edge!(w1, v1)
-        # num = real(dot(t1, v1)) - dot(w1, w1)
-
-        # ここのコードは、分子として TrGを採用したとき用。
-        # r1 = similar(p)
-        # apply_R!(r1, q)
-        # s1 = similar(p)
-        # solve_DinvX!(s1, D, r1)
-
         num = real(dot(q, s))
 
+        #以下でeffective mass(quark mass + residual mass)が計算される
         tmp = num / den
-        
-        #Staggered用
-        # clear_fermion!(p)
-        # Z4_distribution_fermi!(q)
-        # solve_DinvX!(p, D, q)
-        # tmp = dot(q, p) # hermitian inner product
 
         if m.printvalues
             # println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand mres")
@@ -285,8 +223,10 @@ function measure(
         pbp += tmp
     end
 
-    # pbp_value = real(pbp / Nr)
-    pbp_value = real(pbp / Nr) / U[1].NV * m.factor
+    pbp -= mass
+
+    pbp_value = real(pbp) / Nr
+    # pbp_value = real(pbp / Nr) / U[1].NV * m.factor
 
     if m.printvalues
         measurestring_ir = "$pbp_value # pbp Nr=$Nr"
