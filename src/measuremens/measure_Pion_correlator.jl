@@ -91,8 +91,18 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2} <: Abstrac
         params["MaxCGstep"] = MaxCGstep
         params["boundarycondition"] = boundarycondition
 
-        D = Dirac_operator(U, x, params)
-        fermi_action = FermiAction(D, parameters_action)
+
+        if fermiontype == "Domainwall"
+            D5 = Dirac_operator(U, x, params)
+            D = D5.D5DW(U)
+            fermi_action = FermiAction(D5, parameters_action)
+            # D = Dirac_operator(U, x, params)
+            # fermi_action = FermiAction(D, parameters_action)
+        else
+            D = Dirac_operator(U, x, params)
+            fermi_action = FermiAction(D, parameters_action)
+        end
+        
         TD = typeof(D)
         TF = typeof(fermi_action)
 
@@ -156,7 +166,8 @@ function Pion_correlator_measurement(
     if params.fermiontype == "Staggered"
         method = Pion_correlator_measurement(
             U;
-            filename=filename, params_tuple...
+            filename=filename,
+            params_tuple...
             #=
             verbose_level = params.verbose_level,
             printvalues = params.printvalues,
@@ -186,7 +197,7 @@ function Pion_correlator_measurement(
             =#
         )
     elseif params.fermiontype == "Domainwall"
-        error("Domainwall fermion is not implemented in Pion measurement!")
+        # error("Domainwall fermion is not implemented in Pion measurement!")
         method = Pion_correlator_measurement(
             U;
             filename=filename,
@@ -195,10 +206,11 @@ function Pion_correlator_measurement(
             verbose_level = params.verbose_level,
             printvalues = params.printvalues,
             fermiontype = params.fermiontype,
+            mass=params.mass,
             L5 = fermionparameters.N5,
             M = fermionparameters.M,
             eps_CG = params.eps,
-            MaxCGstep = params.MaxCGstep,
+            MaxCGstep = params.MaxCGstep
             =#
         )
     else
@@ -397,9 +409,10 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     clear_fermion!(p)
     #b[ic,1,1,1,1,is] = v
     #println(dot(b,b))
-    p#rintln("ic = $ic is = $is")
+    #println("ic = $ic is = $is")
     iorigin = (1, 1, 1, 1)
-    setindex_global!(b, v, ic, iorigin..., is)  # source at the origin
+    # setindex_global!(b, v, ic, iorigin..., is)  # source at the origin
+    setindex!(b, v, ic, iorigin..., is, 1)  # for domain wall fermion
 
     #=
     mul!(p,D,b)
@@ -422,7 +435,19 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     #println(p[ic,2,1,1,1,is])
     #Z4_distribution_fermi!(b)
     #error("dd")
+
+    # ここはdomain wall用
+    # c = similar(b)
+    # apply_P!(c,b)
+    # d = similar(b)
+    # apply_R!(d,c)
+    # o = similar(p)
+    # @time solve_DinvX!(o, D, d)
+    # apply_P_edge!(p,o)
+
+    #Staggered, Wilson用
     @time solve_DinvX!(p, D, b)
+
     #error("dd")
     #println("norm p ",dot(p,p))
     st = "Hadron spectrum: Inversion $(i)/$(U[1].NC*m.Nspinor) is done"
@@ -431,5 +456,6 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
 
     flush(stdout)
     push!(stvec, measurestring)
+    # return deepcopy(p.w[1]) #domainwall
     return deepcopy(p)
 end

@@ -1,5 +1,5 @@
 using LinearAlgebra
-mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMeasurement
+mutable struct Residual_mass_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMeasurement
     filename::Union{Nothing,String}
     _temporary_gaugefields::Temporalfields{TG}
     Dim::Int8
@@ -7,18 +7,19 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
     verbose_print::Union{Verbose_print,Nothing}
     printvalues::Bool
     D::TD
+    # D0::TD #追加、0質量ドメインウォールのDirac演算子
     fermi_action::TF
     _temporary_fermionfields::Vector{TF_vec}
     Nr::Int64
     factor::Float64
     order::Int64
 
-    function Chiral_condensate_measurement(
+    function Residual_mass_measurement(
         U::Vector{T};
         filename=nothing,
         verbose_level=2,
         printvalues=false,
-        fermiontype="Staggered",
+        fermiontype="Domainwall",
         mass=0.1,
         Nf=2,
         κ=1,
@@ -57,54 +58,33 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
             b,
             c
         )
-        #=
-        Nfbase = 1
-        factor = 1
-        params = Dict()
-        parameters_action = Dict()
-        if fermiontype == "Staggered"
-            x = Initialize_pseudofermion_fields(U[1], "staggered")
-            params["Dirac_operator"] = "staggered"
-            params["mass"] = mass
-            parameters_action["Nf"] = Nf
-            Nfbase = 4
-            #Nfbase = ifelse( m.fparam.Dirac_operator == "Staggered",4,1)
-            factor = Nf / Nfbase
-
-        elseif fermiontype == "Wilson"
-            x = Initialize_pseudofermion_fields(U[1], "Wilson", nowing = true)
-            params["Dirac_operator"] = "Wilson"
-            params["κ"] = κ
-            params["r"] = r
-            params["faster version"] = true
-        elseif fermiontype == "Domainwall"
-            x = Initialize_pseudofermion_fields(U[1], "Domainwall", L5 = L5)
-            params["Dirac_operator"] = "Domainwall"
-            params["mass"] = mass
-            params["L5"] = L5
-            params["M"] = M
-        else
-            error(
-                "fermion type $fermiontype is not supported in chiral condensate measurement",
-            )
-        end
-        =#
+        
+        #追加: 質量0のパラメータ
+        # params0 = first(make_fermionparameter_dict(
+        #     U,
+        #     fermiontype,
+        #     0,
+        #     Nf,
+        #     κ,
+        #     r,
+        #     L5,
+        #     M,
+        # ))
 
         params["eps_CG"] = eps_CG
         params["verbose_level"] = verbose_level
         params["MaxCGstep"] = MaxCGstep
         params["boundarycondition"] = boundarycondition
 
-        if fermiontype == "Domainwall" || fermiontype == "MobiusDomainwall"
-            D5 = Dirac_operator(U, x, params)
-            D = D5.D5DW(U)
-            fermi_action = FermiAction(D5, parameters_action)
-            # D = Dirac_operator(U, x, params)
-            # fermi_action = FermiAction(D, parameters_action)
-        else
-            D = Dirac_operator(U, x, params)
-            fermi_action = FermiAction(D, parameters_action)
-        end
+        #Domain wall用
+        D = Dirac_operator(U, x, params)
+        # D0 = Dirac_operator(U, x, params0) #ここのxは、Initialize_pseudofermion_fieldsなので、上と同一で良い
+        fermi_action = FermiAction(D, parameters_action)
+
+        #Staggered用
+        # D = Dirac_operator(U, x, params)
+        # fermi_action = FermiAction(D, parameters_action)
+
 
         TD = typeof(D)
         TF = typeof(fermi_action)
@@ -153,6 +133,7 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
             verbose_print,
             printvalues,
             D,#::TD
+            # D0,
             fermi_action,#::TF,
             _temporary_fermionfields,
             Nr,
@@ -166,26 +147,13 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMea
 
 end
 
-function Chiral_condensate_measurement(
+function Residual_mass_measurement(
     U::Vector{T},
-    params::ChiralCondensate_parameters,
-    filename="Chiral_condensate.txt",
+    params::ResidualMass_parameters,
+    filename="Residual_mass.txt",
 ) where {T}
-    if params.fermiontype == "Staggered"
-        method = Chiral_condensate_measurement(
-            U;
-            filename=filename,
-            verbose_level=params.verbose_level,
-            printvalues=params.printvalues,
-            fermiontype=params.fermiontype,
-            mass=params.mass,
-            Nf=params.Nf,
-            eps_CG=params.eps,
-            MaxCGstep=params.MaxCGstep,
-            Nr=params.Nr,
-        )
-    elseif params.fermiontype == "Domainwall"
-        method = Chiral_condensate_measurement(
+    if params.fermiontype == "Domainwall"
+        method = Residual_mass_measurement(
             U;
             filename=filename,
             verbose_level=params.verbose_level,
@@ -199,7 +167,7 @@ function Chiral_condensate_measurement(
             Nr=params.Nr,
         )
     elseif params.fermiontype == "MobiusDomainwall"
-        method = Chiral_condensate_measurement(
+        method = Residual_mass_measurement(
             U;
             filename=filename,
             verbose_level=params.verbose_level,
@@ -214,8 +182,21 @@ function Chiral_condensate_measurement(
             MaxCGstep=params.MaxCGstep,
             Nr=params.Nr,
         )
+    elseif params.fermiontype == "Staggered"
+        method = Residual_mass_measurement(
+            U;
+            filename=filename,
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            mass=params.mass,
+            Nf=params.Nf,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+            Nr=params.Nr,
+        )
     else
-        error("$(params.fermiontype) is not supported in Chiral_condensate_measurement")
+        error("$(params.fermiontype) is not supported in Residual_mass_measurement")
     end
 
 
@@ -227,54 +208,76 @@ function measure(
     m::M,
     U::Array{<:AbstractGaugefields{NC,Dim},1};
     additional_string="",
-) where {M<:Chiral_condensate_measurement,NC,Dim}
+) where {M<:Residual_mass_measurement,NC,Dim}
     temps_fermi = get_temporary_fermionfields(m)
     p = temps_fermi[1]
-    r = temps_fermi[2]
-    D = m.D(U) 
+    q = temps_fermi[2]
+
+    #Domainwall用
+    D = m.D.D5DW(U)
+    # DPV = m.D.D5DW_PV(U)
+    # D0 = m.D0.D5DW(U)
+
+    #Staggered用
+    # D = m.D(U)
+
     pbp = 0.0
-    #Nr = 100
     Nr = m.Nr
     measurestring = ""
-    if m.order != 1
-        tmps = zeros(ComplexF64, m.order)
-        p2 = temps_fermi[3]
-        pbps = zeros(ComplexF64, m.order)
-    end
 
     for ir = 1:Nr
-        clear_fermion!(p)
-        Z4_distribution_fermi!(r)
-        r2 = similar(r)
-        apply_P!(r2, r)
-        apply_R!(p, r2)
-        solve_DinvX!(r, D, p)
-        tmp = dot(r2, r) # hermitian inner product
+        # Domainwall用
+        Z4_distribution_fermi!(p)
+        clear_fermion!(q)
+        apply_P!(q, p)
+        r = similar(p)
+        apply_R!(r, q)
+        s = similar(p)
+        solve_DinvX!(s, D, r)
+        t = similar(p)
+        #sに対してP-をかけるmul!を追加する
+        apply_P_edge!(t,s)
+        den = dot(t,t)
 
-        # Domainwallfermion以外の場合
+        # r1 = similar(p)
+        # mul!(r1, DPV, q) #ここは,PV->D_4^{-1},R->Gが対応する
+        # s1 = similar(p)
+        # solve_DinvX!(s1, D, r1)
+        # t1 = similar(p)
+        # apply_P_edge!(t1, s1)
+        # u1 = similar(p)
+        # mul!(u1, D0, t1)
+        # v1 = similar(p)
+        # solve_DinvX!(v1, DPV, u1)
+        # w1 = similar(p)
+        # apply_P_edge!(w1, v1)
+        # num = real(dot(t1, v1)) - dot(w1, w1)
+
+        # ここのコードは、分子として TrGを採用したとき用。
+        # r1 = similar(p)
+        # apply_R!(r1, q)
+        # s1 = similar(p)
+        # solve_DinvX!(s1, D, r1)
+
+        num = real(dot(q, s))
+
+        tmp = num / den
+        
+        #Staggered用
         # clear_fermion!(p)
-        # Z4_distribution_fermi!(r)
-        # solve_DinvX!(p, D, r)
-        # tmp = dot(r, p) # hermitian inner product
-        if m.order != 1
-            tmps[1] = tmp
-            for i = 2:m.order
-                solve_DinvX!(p2, D, p)
-                p, p2 = p2, p
-                tmps[i] = dot(r, p)
-            end
-            pbps .+= tmps
-        end
+        # Z4_distribution_fermi!(q)
+        # solve_DinvX!(p, D, q)
+        # tmp = dot(q, p) # hermitian inner product
 
         if m.printvalues
-            # println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand chiralcond")
-            measurestring_ir = "# $ir $additional_string $(real(tmp)/U[1].NV) # itrj irand chiralcond"
+            # println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand mres")
+            measurestring_ir = "# $ir $additional_string $(real(tmp)) # itrj irand mres"
             if m.order != 1
                 measurestring_ir = "# $ir $additional_string"
                 for i = 1:m.order
-                    measurestring_ir *= " $(real(tmps[i])/U[1].NV) "
+                    measurestring_ir *= " $(real(tmps[i])) "
                 end
-                measurestring_ir *= " # itrj irand chiralcond: $(m.order)-th orders"
+                measurestring_ir *= " # itrj irand mres: $(m.order)-th orders"
             end
             println_verbose_level2(m.verbose_print, measurestring_ir)
             measurestring *= measurestring_ir * "\n"
@@ -282,11 +285,8 @@ function measure(
         pbp += tmp
     end
 
+    # pbp_value = real(pbp / Nr)
     pbp_value = real(pbp / Nr) / U[1].NV * m.factor
-    
-    if m.order != 1
-        pbp_values = real.(pbps / Nr) / U[1].NV * m.factor
-    end
 
     if m.printvalues
         measurestring_ir = "$pbp_value # pbp Nr=$Nr"
@@ -302,51 +302,7 @@ function measure(
         flush(stdout)
     end
 
-    if m.order != 1
-        output = Measurement_output(pbp_values, measurestring)
-    else
-        output = Measurement_output(pbp_value, measurestring)
-    end
+    output = Measurement_output(pbp_value, measurestring)
 
     return output
 end
-
-
-
-#=
-"""
-c-------------------------------------------------c
-c     Random number function Z4  Noise
-c     https://arxiv.org/pdf/1611.01193.pdf
-c-------------------------------------------------c
-    """
-    function Z4_distribution_fermion!(x::AbstractFermionfields_4D{NC})  where NC
-        NX = x.NX
-        NY = x.NY
-        NZ = x.NZ
-        NT = x.NT
-        n6 = size(x.f)[6]
-        θ = 0.0
-        N::Int32 = 4
-        Ninv = Float64(1/N)
-        for ialpha = 1:n6
-            for it=1:NT
-                for iz=1:NZ
-                    for iy=1:NY
-                        for ix=1:NX
-                            @inbounds @simd for ic=1:NC
-                                θ = Float64(rand(0:N-1))*π*Ninv # r \in [0,π/4,2π/4,3π/4]
-                                x[ic,ix,iy,iz,it,ialpha] = cos(θ)+im*sin(θ) 
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        set_wing_fermion!(x)
-
-        return
-    end
-
-    =#
