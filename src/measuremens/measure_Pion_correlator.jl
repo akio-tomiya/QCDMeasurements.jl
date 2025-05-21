@@ -94,16 +94,10 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
         params["boundarycondition"] = boundarycondition
 
 
-        if fermiontype == "Domainwall"
-            D5 = Dirac_operator(U, x, params)
-            D = D5.D5DW(U)
-            fermi_action = FermiAction(D5, parameters_action)
-            # D = Dirac_operator(U, x, params)
-            # fermi_action = FermiAction(D, parameters_action)
-        else
-            D = Dirac_operator(U, x, params)
-            fermi_action = FermiAction(D, parameters_action)
-        end
+        
+        D = Dirac_operator(U, x, params)
+        fermi_action = FermiAction(D, parameters_action)
+        
         
         TD = typeof(D)
         TF = typeof(fermi_action)
@@ -231,6 +225,7 @@ function Pion_correlator_measurement(
         )
     elseif params.fermiontype == "Domainwall"
         # error("Domainwall fermion is not implemented in Pion measurement!")
+        @warn "Pion correlator for Domainwall fermion is under construction!!"
         method = Pion_correlator_measurement(
             U;
             filename=filename,
@@ -452,7 +447,6 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     #println("ic = $ic is = $is")
     iorigin = (1, 1, 1, 1)
     setindex_global!(b, v, ic, iorigin..., is)  # source at the origin
-    # setindex!(b, v, ic, iorigin..., is, 1)  # for domain wall fermion
 
     #=
     mul!(p,D,b)
@@ -476,16 +470,6 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     #Z4_distribution_fermi!(b)
     #error("dd")
 
-    # domain wall用
-    # c = similar(b)
-    # apply_P!(c,b)
-    # d = similar(b)
-    # apply_R!(d,c)
-    # o = similar(p)
-    # @time solve_DinvX!(o, D, d)
-    # apply_P_edge!(p,o)
-
-    #Staggered, Wilson用
     @time solve_DinvX!(p, D, b)
 
     #error("dd")
@@ -496,6 +480,67 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
 
     flush(stdout)
     push!(stvec, measurestring)
-    # return deepcopy(p.w[1]) #domainwall
+
     return deepcopy(p)
+end
+
+# Domain wall用のコードは開発中です
+function calc_quark_propagators_point_source(
+    m::Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov},
+    U::Array{<:AbstractGaugefields{NC,Dim},1},
+) where {NC,Dim,TG,TD,TF,TF_vec<:LatticeDiracOperators.Dirac_operators.Abstract_DomainwallFermion_5D,Dim_2,TCov}
+    # D^{-1} for each spin x color element
+    D = m.D.D5DW(U)
+    stvec = String[]
+    propagators = map(
+        i -> calc_quark_propagators_point_source_each(m, U, D, i, stvec),
+        1:NC*m.Nspinor,
+    )
+    st = ""
+    for i = 1:NC*m.Nspinor
+        st *= stvec[i] * "\n"
+    end
+    return propagators, st
+end
+
+function calc_quark_propagators_point_source_each(
+    m::Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov},
+    U,D,i, stvec
+) where {Dim,TG,TD,TF,TF_vec<:LatticeDiracOperators.Dirac_operators.Abstract_DomainwallFermion_5D,Dim_2,TCov}
+    temps_fermi = get_temporary_fermionfields(m)
+    measurestring = ""
+    b = temps_fermi[1]
+    p = temps_fermi[2]
+
+    Nspinor = m.Nspinor#ifelse( meas.fparam.Dirac_operator == "Staggered" ,1,4)
+    is = ((i - 1) % Nspinor) + 1 # spin index   
+    ic = ((i - is) ÷ Nspinor) + 1 # color index
+    st = "$ic $is"
+    measurestring *= st * "\n"
+    println_verbose_level1(U[1], st)
+    v = 1
+    clear_fermion!(b)
+    clear_fermion!(p)
+
+    iorigin = (1, 1, 1, 1)
+    setindex!(b, v, ic, iorigin..., is, 1)  # for domain wall fermion
+
+    # domain wall用
+    c = similar(b)
+    apply_P!(c,b)
+    d = similar(b)
+    apply_R!(d,c)
+    o = similar(p)
+    @time solve_DinvX!(o, D, d)
+    apply_P_edge!(p,o)
+
+    st = "Hadron spectrum: Inversion $(i)/$(U[1].NC*m.Nspinor) is done"
+    measurestring *= st * "\n"
+    println_verbose_level1(U[1], st)
+
+    flush(stdout)
+    push!(stvec, measurestring)
+
+    return deepcopy(p.w[1])
+    
 end

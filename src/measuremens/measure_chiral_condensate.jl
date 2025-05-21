@@ -334,13 +334,12 @@ function measure(
     return output
 end
 
-#5次元フェルミオン(Domainwall, MobiusDomainwall)用
+# Domainwall用
 function measure(
     m::Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec},
     U::Array{<:AbstractGaugefields{NC,Dim},1};
     additional_string="",
-) where {NC,Dim,TG,TD,TF,TF_vec<:LatticeDiracOperators.Dirac_operators.AbstractFermionfields_5D}
-# ) where {M<:Chiral_condensate_measurement,NC,Dim}
+) where {NC,Dim,TG,TD,TF,TF_vec<:LatticeDiracOperators.Dirac_operators.Abstract_DomainwallFermion_5D}
     temps_fermi = get_temporary_fermionfields(m)
     p = temps_fermi[1]
     r = temps_fermi[2]
@@ -418,6 +417,88 @@ function measure(
     return output
 end
 
+#MobiusDomainwall用
+function measure(
+    m::Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec},
+    U::Array{<:AbstractGaugefields{NC,Dim},1};
+    additional_string="",
+) where {NC,Dim,TG,TD,TF,TF_vec<:LatticeDiracOperators.Dirac_operators.Abstract_MobiusDomainwallFermion_5D}
+    temps_fermi = get_temporary_fermionfields(m)
+    p = temps_fermi[1]
+    r = temps_fermi[2]
+    D = m.D.D5DW(U)
+    pbp = 0.0
+    Nr = m.Nr
+    measurestring = ""
+    if m.order != 1
+        tmps = zeros(ComplexF64, m.order)
+        p2 = temps_fermi[3]
+        pbps = zeros(ComplexF64, m.order)
+    end
+
+    for ir = 1:Nr
+        clear_fermion!(p)
+        Z4_distribution_fermi!(r)
+        r2 = similar(r)
+        apply_P!(r2, r)
+        apply_R!(p, r2)
+        solve_DinvX!(r, D, p)
+        tmp = dot(r2, r) # hermitian inner product
+
+        if m.order != 1
+            tmps[1] = tmp
+            for i = 2:m.order
+                solve_DinvX!(p2, D, p)
+                p, p2 = p2, p
+                tmps[i] = dot(r, p)
+            end
+            pbps .+= tmps
+        end
+
+        if m.printvalues
+            # println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand chiralcond")
+            measurestring_ir = "# $ir $additional_string $(real(tmp)/U[1].NV) # itrj irand chiralcond"
+            if m.order != 1
+                measurestring_ir = "# $ir $additional_string"
+                for i = 1:m.order
+                    measurestring_ir *= " $(real(tmps[i])/U[1].NV) "
+                end
+                measurestring_ir *= " # itrj irand chiralcond: $(m.order)-th orders"
+            end
+            println_verbose_level2(m.verbose_print, measurestring_ir)
+            measurestring *= measurestring_ir * "\n"
+        end
+        pbp += tmp
+    end
+
+    pbp_value = real(pbp / Nr) / U[1].NV * m.factor
+    
+    if m.order != 1
+        pbp_values = real.(pbps / Nr) / U[1].NV * m.factor
+    end
+
+    if m.printvalues
+        measurestring_ir = "$pbp_value # pbp Nr=$Nr"
+        if m.order != 1
+            measurestring_ir = " "
+            for i = 1:m.order
+                measurestring_ir *= " $(pbp_values[i]) "
+            end
+            measurestring_ir *= "# pbp Nr=$Nr"
+        end
+        println_verbose_level1(m.verbose_print, measurestring_ir)
+        measurestring *= measurestring_ir * "\n"
+        flush(stdout)
+    end
+
+    if m.order != 1
+        output = Measurement_output(pbp_values, measurestring)
+    else
+        output = Measurement_output(pbp_value, measurestring)
+    end
+
+    return output
+end
 
 #=
 """

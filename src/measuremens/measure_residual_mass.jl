@@ -225,8 +225,8 @@ function measure(
 
     pbp -= mass
 
-    pbp_value = real(pbp) / Nr
-    # pbp_value = real(pbp / Nr) / U[1].NV * m.factor
+    pbp_value = pbp / Nr
+    # pbp_value = pbp / Nr / U[1].NV * m.factor 分母と分子を共通のファクターで割るので pbp / Nr 
 
     if m.printvalues
         measurestring_ir = "$pbp_value # pbp Nr=$Nr"
