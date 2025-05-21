@@ -220,7 +220,6 @@ function measure(
     end
 
     pbp -= mass
-
     pbp_value = pbp / Nr
 
     if m.printvalues
