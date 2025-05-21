@@ -484,7 +484,7 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     return deepcopy(p)
 end
 
-# for Domain wall
+# for Domain wall, under construction
 function calc_quark_propagators_point_source(
     m::Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov},
     U::Array{<:AbstractGaugefields{NC,Dim},1},
@@ -525,7 +525,6 @@ function calc_quark_propagators_point_source_each(
     iorigin = (1, 1, 1, 1)
     setindex!(b, v, ic, iorigin..., is, 1)  # for domain wall fermion
 
-    # domain wall用
     c = similar(b)
     apply_P!(c,b)
     d = similar(b)

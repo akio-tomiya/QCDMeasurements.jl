@@ -96,11 +96,9 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: Abstra
         params["MaxCGstep"] = MaxCGstep
         params["boundarycondition"] = boundarycondition
 
-        
         D = Dirac_operator(U, x, params)
         fermi_action = FermiAction(D, parameters_action)
         
-
         TD = typeof(D)
         TF = typeof(fermi_action)
 
