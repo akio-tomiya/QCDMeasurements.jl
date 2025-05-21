@@ -26,6 +26,8 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: Abstra
         r=1,
         L5=2,
         M=-1,
+        b=1,
+        c=1,
         eps_CG=1e-14,
         MaxCGstep=5000,
         BoundaryCondition=nothing,
@@ -54,6 +56,8 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: Abstra
             r,
             L5,
             M,
+            b,
+            c
         )
         #=
         Nfbase = 1
@@ -93,10 +97,12 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: Abstra
         params["MaxCGstep"] = MaxCGstep
         params["boundarycondition"] = boundarycondition
 
-        if fermiontype == "Domainwall"
+        if fermiontype == "Domainwall" || fermiontype == "MobiusDomainwall"
             D5 = Dirac_operator(U, x, params)
             D = D5.D5DW(U)
             fermi_action = FermiAction(D5, parameters_action)
+            # D = Dirac_operator(U, x, params)
+            # fermi_action = FermiAction(D, parameters_action)
         else
             D = Dirac_operator(U, x, params)
             fermi_action = FermiAction(D, parameters_action)
@@ -224,6 +230,22 @@ function Chiral_condensate_measurement(
             MaxCGstep=params.MaxCGstep,
             Nr=params.Nr,
         )
+    elseif params.fermiontype == "MobiusDomainwall"
+        method = Chiral_condensate_measurement(
+            U;
+            filename=filename,
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            mass=params.mass,
+            L5=params.L5,
+            M=params.M,
+            b=params.b,
+            c=params.c,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+            Nr=params.Nr,
+        )
     else
         error("$(params.fermiontype) is not supported in Chiral_condensate_measurement")
     end
@@ -241,7 +263,6 @@ function measure(
     temps_fermi = get_temporary_fermionfields(m)
     p = temps_fermi[1]
     r = temps_fermi[2]
-
     if m.cov_neural_net === nothing
         D = m.D(U)
     else
@@ -249,8 +270,6 @@ function measure(
         println("smeared U is used in chiral measurement")
         D = m.D(Uout)
     end
-
-
     pbp = 0.0
     #Nr = 100
     Nr = m.Nr
@@ -265,14 +284,12 @@ function measure(
         clear_fermion!(p)
         Z4_distribution_fermi!(r)
         r2 = similar(r)
-        # p2 = similar(p)
-        temp = similar(r)
-        apply_P!(r2, r.L5, r, temp)
-        # apply_P!(p2, p.L5, p, temp)
+        apply_P!(r2, r)
         apply_R!(p, r2)
         solve_DinvX!(r, D, p)
         tmp = dot(r2, r) # hermitian inner product
-        
+
+        # Domainwallfermion以外の場合
         # clear_fermion!(p)
         # Z4_distribution_fermi!(r)
         # solve_DinvX!(p, D, r)
@@ -304,6 +321,7 @@ function measure(
     end
 
     pbp_value = real(pbp / Nr) / U[1].NV * m.factor
+    
     if m.order != 1
         pbp_values = real.(pbps / Nr) / U[1].NV * m.factor
     end
