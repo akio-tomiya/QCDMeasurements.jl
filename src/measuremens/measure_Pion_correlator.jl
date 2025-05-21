@@ -484,7 +484,7 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     return deepcopy(p)
 end
 
-# Domain wall用のコードは開発中です
+# for Domain wall
 function calc_quark_propagators_point_source(
     m::Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov},
     U::Array{<:AbstractGaugefields{NC,Dim},1},

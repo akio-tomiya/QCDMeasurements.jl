@@ -244,7 +244,6 @@ function Chiral_condensate_measurement(
     end
 
 
-    #途中
     return method
 end
 
@@ -334,7 +333,7 @@ function measure(
     return output
 end
 
-# Domainwall用
+#for Domainwall
 function measure(
     m::Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec},
     U::Array{<:AbstractGaugefields{NC,Dim},1};
@@ -417,7 +416,7 @@ function measure(
     return output
 end
 
-#MobiusDomainwall用
+#for MobiusDomainwall
 function measure(
     m::Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec},
     U::Array{<:AbstractGaugefields{NC,Dim},1};

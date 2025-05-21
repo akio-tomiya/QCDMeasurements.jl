@@ -167,8 +167,6 @@ function Residual_mass_measurement(
         error("$(params.fermiontype) is not supported in Residual_mass_measurement")
     end
 
-
-    #途中
     return method
 end
 
@@ -189,7 +187,6 @@ function measure(
     measurestring = ""
 
     for ir = 1:Nr
-        # Domainwall用
         Z4_distribution_fermi!(p)
         clear_fermion!(q)
         apply_P!(q, p)
@@ -198,13 +195,12 @@ function measure(
         s = similar(p)
         solve_DinvX!(s, D, r)
         t = similar(p)
-        #sに対してP-をかけるmul!を追加する
         apply_P_edge!(t,s)
         den = dot(t,t)
 
         num = real(dot(q, s))
 
-        #以下でeffective mass(quark mass + residual mass)が計算される
+        #tmp = effective mass = quark mass + residual mass
         tmp = num / den
 
         if m.printvalues
@@ -226,7 +222,6 @@ function measure(
     pbp -= mass
 
     pbp_value = pbp / Nr
-    # pbp_value = pbp / Nr / U[1].NV * m.factor 分母と分子を共通のファクターで割るので pbp / Nr 
 
     if m.printvalues
         measurestring_ir = "$pbp_value # pbp Nr=$Nr"
