@@ -8,6 +8,7 @@ mutable struct Eigenvalue_measurement{Dim,TG,TD} <: AbstractMeasurement
     D::TD
     nev::Int64
     which::Symbol
+    isDdagD::Bool
 
 
     function Eigenvalue_measurement(
@@ -27,6 +28,7 @@ mutable struct Eigenvalue_measurement{Dim,TG,TD} <: AbstractMeasurement
         eps_CG=1e-14,
         MaxCGstep=3000,
         BoundaryCondition=nothing,
+        isDdagD=false
     ) where {T}
         myrank = get_myrank(U)
         #=
@@ -83,7 +85,7 @@ mutable struct Eigenvalue_measurement{Dim,TG,TD} <: AbstractMeasurement
         return new{Dim,T,TD}(filename, _temporary_gaugefields,
             Dim, verbose_print, printvalues,
             D,
-            nev, which)
+            nev, which, isDdagD)
 
     end
 end
@@ -110,6 +112,7 @@ function Eigenvalue_measurement(
         filename=filename,
         nev=params.nev,
         which=params.which,
+        isDdagD=params.isDdagD,
         params_tuple...
     )
     return method
@@ -125,6 +128,9 @@ function measure(m::M, U; additional_string="", maxiter=3000) where {M<:Eigenval
     #println_verbose_level2(m.verbose_print,"constructing sparse matrix...")
     Du = m.D(U)
     Ds = construct_sparsematrix(Du)
+    if m.isDdagD
+        Ds = Ds' * Ds
+    end
     n, _ = size(Ds)
     #=
     e,v = eigen(Matrix(Ds))

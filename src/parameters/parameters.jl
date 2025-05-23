@@ -198,6 +198,7 @@ Base.@kwdef mutable struct Eigenvalue_parameters <: Measurement_parameters
     printvalues::Bool = true
     nev::Int64 = 10 #num. of eigenvalues
     which::Symbol = :SM # :SM smallest magnitude
+    isDdagD::Bool = false #measure DdagD
 end
 
 Base.@kwdef mutable struct MdagMspectrum_parameters <: Measurement_parameters
