@@ -71,6 +71,8 @@ mutable struct Eigenvalue_measurement{Dim,TG,TD} <: AbstractMeasurement
 
         D = Dirac_operator(U, x, params)
         TD = typeof(D)
+        #println(params["boundarycondition"])
+        #error("boundary")
 
 
 
@@ -113,6 +115,7 @@ function Eigenvalue_measurement(
         nev=params.nev,
         which=params.which,
         isDdagD=params.isDdagD,
+        BoundaryCondition=params.BoundaryCondition,
         params_tuple...
     )
     return method
@@ -132,15 +135,18 @@ function measure(m::M, U; additional_string="", maxiter=3000) where {M<:Eigenval
         Ds = Ds' * Ds
     end
     n, _ = size(Ds)
+
     #=
-    e,v = eigen(Matrix(Ds))
-    fp = open("testwilson.txt","w")
+    e, v = eigen(Matrix(Ds))
+    fp = open("teststagg.txt", "w")
     for ei in e
-        println(fp,"$(real(ei)) $(imag(ei))")
+        println(fp, "$(real(ei)) $(imag(ei))")
     end
     close(fp)
     display(Ds)
+    error("DS")
     =#
+
     vals, vectors = eigs(Ds, nev=m.nev, which=m.which, maxiter=maxiter)
     #println_verbose_level2(m.verbose_print,"done...")
     measurestring = ""
