@@ -10,7 +10,7 @@ import Gaugefields.Temporalfields_module: Temporalfields,
 
 
 include("parameters/parameters.jl")
-include("measuremens/AbstractMeasurement.jl")
+include("measurements/AbstractMeasurement.jl")
 
 export Plaquette_measurement, measure, get_value, get_string
 export Polyakov_measurement

@@ -9,6 +9,7 @@ mutable struct Eigenvalue_measurement{Dim,TG,TD} <: AbstractMeasurement
     nev::Int64
     which::Symbol
     isDdagD::Bool
+    solver::String
 
 
     function Eigenvalue_measurement(
@@ -28,7 +29,8 @@ mutable struct Eigenvalue_measurement{Dim,TG,TD} <: AbstractMeasurement
         eps_CG=1e-14,
         MaxCGstep=3000,
         BoundaryCondition=nothing,
-        isDdagD=false
+        isDdagD=false,
+        solver="Arpack"
     ) where {T}
         myrank = get_myrank(U)
         #=
@@ -87,7 +89,7 @@ mutable struct Eigenvalue_measurement{Dim,TG,TD} <: AbstractMeasurement
         return new{Dim,T,TD}(filename, _temporary_gaugefields,
             Dim, verbose_print, printvalues,
             D,
-            nev, which, isDdagD)
+            nev, which, isDdagD, solver)
 
     end
 end
@@ -116,6 +118,7 @@ function Eigenvalue_measurement(
         which=params.which,
         isDdagD=params.isDdagD,
         BoundaryCondition=params.BoundaryCondition,
+        solver=params.solver,
         params_tuple...
     )
     return method
@@ -123,13 +126,25 @@ function Eigenvalue_measurement(
 end
 
 
+function measure(m::M, U::Vector{T}; additional_string="", maxiter=3000) where {M<:Eigenvalue_measurement,T<:AbstractGaugefields}
+    Du = m.D(U)
+    Ds = construct_sparsematrix(Du)
+    if m.isDdagD
+        Ds = Ds' * Ds
+    end
+    output = measure(m, Du; additional_string, maxiter, directflag=false)
+    return output
+end
 
 
-function measure(m::M, U; additional_string="", maxiter=3000) where {M<:Eigenvalue_measurement}
+function measure(m::M, Du; additional_string="", maxiter=3000, directflag=true) where {M<:Eigenvalue_measurement}
     #temps = get_temporary_gaugefields(m)
     #poly = calculate_Polyakov_loop(U, temps[1], temps[2])
     #println_verbose_level2(m.verbose_print,"constructing sparse matrix...")
-    Du = m.D(U)
+    #Du = m.D(U)
+    if m.isDdagD && directflag
+        error("Input is a Dirac operator. then isDdagD should be false.")
+    end
     Ds = construct_sparsematrix(Du)
     if m.isDdagD
         Ds = Ds' * Ds
@@ -146,8 +161,17 @@ function measure(m::M, U; additional_string="", maxiter=3000) where {M<:Eigenval
     display(Ds)
     error("DS")
     =#
-
-    vals, vectors = eigs(Ds, nev=m.nev, which=m.which, maxiter=maxiter)
+    if m.solver == "Arpack"
+        vals, vectors = eigs(Ds, nev=m.nev, which=m.which, maxiter=maxiter)
+    elseif m.solver == "exact"
+        println("solving eigenvalue equations exactly...")
+        vals, vectors = eigen(Matrix(Ds))
+        vals = vals[1:m.nev]
+        vectors = vectors[:, 1:m.nev]
+        println("done.")
+    else
+        error("solver $(m.solver) is not supported")
+    end
     #println_verbose_level2(m.verbose_print,"done...")
     measurestring = ""
 
