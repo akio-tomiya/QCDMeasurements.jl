@@ -27,6 +27,8 @@ mutable struct Residual_mass_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMeasure
         M=-1,
         b=1,
         c=1,
+        bs=[1,1],
+        cs=[1,1],
         eps_CG=1e-14,
         MaxCGstep=5000,
         BoundaryCondition=nothing,
@@ -55,7 +57,9 @@ mutable struct Residual_mass_measurement{Dim,TG,TD,TF,TF_vec} <: AbstractMeasure
             L5,
             M,
             b,
-            c
+            c,
+            bs,
+            cs
         )
 
         params["eps_CG"] = eps_CG
@@ -163,6 +167,22 @@ function Residual_mass_measurement(
             MaxCGstep=params.MaxCGstep,
             Nr=params.Nr,
         )
+    elseif params.fermiontype == "GeneralizedDomainwall"
+        method = Residual_mass_measurement(
+            U;
+            filename=filename,
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            mass=params.mass,
+            L5=params.L5,
+            M=params.M,
+            bs=params.bs,
+            cs=params.cs,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+            Nr=params.Nr,
+        )
     else
         error("$(params.fermiontype) is not supported in Residual_mass_measurement")
     end
@@ -182,7 +202,7 @@ function measure(
     D = m.D.D5DW(U)
     mass = m.mass
 
-    pbp = 0.0
+    meff = 0.0
     Nr = m.Nr
     measurestring = ""
 
@@ -191,7 +211,7 @@ function measure(
         clear_fermion!(q)
         apply_P!(q, p)
         r = similar(p)
-        apply_R!(r, q)
+        apply_J!(r, q)
         s = similar(p)
         solve_DinvX!(s, D, r)
         t = similar(p)
@@ -201,11 +221,11 @@ function measure(
         num = real(dot(q, s))
 
         #tmp = effective mass = quark mass + residual mass
-        tmp = num / den
+        tmp = real(num / den)
 
         if m.printvalues
-            # println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand mres")
-            measurestring_ir = "# $ir $additional_string $(real(tmp)) # itrj irand mres"
+            # println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand meff")
+            measurestring_ir = "# $ir $additional_string $(real(tmp)) # itrj irand meff"
             if m.order != 1
                 measurestring_ir = "# $ir $additional_string"
                 for i = 1:m.order
@@ -216,27 +236,27 @@ function measure(
             println_verbose_level2(m.verbose_print, measurestring_ir)
             measurestring *= measurestring_ir * "\n"
         end
-        pbp += tmp
+        meff += tmp
     end
 
-    pbp -= mass
-    pbp_value = pbp / Nr
+    meff_value = meff / Nr
+    mres = meff_value - mass
 
     if m.printvalues
-        measurestring_ir = "$pbp_value # pbp Nr=$Nr"
+        measurestring_ir = "$meff_value # meff Nr=$Nr"
         if m.order != 1
             measurestring_ir = " "
             for i = 1:m.order
-                measurestring_ir *= " $(pbp_values[i]) "
+                measurestring_ir *= " $(meff_values[i]) "
             end
-            measurestring_ir *= "# pbp Nr=$Nr"
+            measurestring_ir *= "# meff Nr=$Nr"
         end
         println_verbose_level1(m.verbose_print, measurestring_ir)
         measurestring *= measurestring_ir * "\n"
         flush(stdout)
     end
 
-    output = Measurement_output(pbp_value, measurestring)
+    output = Measurement_output(mres, measurestring)
 
     return output
 end

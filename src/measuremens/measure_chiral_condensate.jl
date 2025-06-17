@@ -27,6 +27,8 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: Abstra
         M=-1,
         b=1,
         c=1,
+        bs=[1,1],
+        cs=[1,1],
         eps_CG=1e-14,
         MaxCGstep=5000,
         BoundaryCondition=nothing,
@@ -56,7 +58,9 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: Abstra
             L5,
             M,
             b,
-            c
+            c,
+            bs,
+            cs
         )
         #=
         Nfbase = 1
@@ -237,6 +241,22 @@ function Chiral_condensate_measurement(
             MaxCGstep=params.MaxCGstep,
             Nr=params.Nr,
         )
+    elseif params.fermiontype == "GeneralizedDomainwall"
+        method = Chiral_condensate_measurement(
+            U;
+            filename=filename,
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            mass=params.mass,
+            L5=params.L5,
+            M=params.M,
+            bs=params.bs,
+            cs=params.cs,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+            Nr=params.Nr,
+        )
     else
         error("$(params.fermiontype) is not supported in Chiral_condensate_measurement")
     end
@@ -330,6 +350,44 @@ function measure(
 
     return output
 end
+
+#=
+"""
+c-------------------------------------------------c
+c     Random number function Z4  Noise
+c     https://arxiv.org/pdf/1611.01193.pdf
+c-------------------------------------------------c
+    """
+    function Z4_distribution_fermion!(x::AbstractFermionfields_4D{NC})  where NC
+        NX = x.NX
+        NY = x.NY
+        NZ = x.NZ
+        NT = x.NT
+        n6 = size(x.f)[6]
+        θ = 0.0
+        N::Int32 = 4
+        Ninv = Float64(1/N)
+        for ialpha = 1:n6
+            for it=1:NT
+                for iz=1:NZ
+                    for iy=1:NY
+                        for ix=1:NX
+                            @inbounds @simd for ic=1:NC
+                                θ = Float64(rand(0:N-1))*π*Ninv # r \in [0,π/4,2π/4,3π/4]
+                                x[ic,ix,iy,iz,it,ialpha] = cos(θ)+im*sin(θ) 
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        set_wing_fermion!(x)
+
+        return
+    end
+
+    =#
 
 #for Domainwall
 function measure(
@@ -497,40 +555,85 @@ function measure(
     return output
 end
 
-#=
-"""
-c-------------------------------------------------c
-c     Random number function Z4  Noise
-c     https://arxiv.org/pdf/1611.01193.pdf
-c-------------------------------------------------c
-    """
-    function Z4_distribution_fermion!(x::AbstractFermionfields_4D{NC})  where NC
-        NX = x.NX
-        NY = x.NY
-        NZ = x.NZ
-        NT = x.NT
-        n6 = size(x.f)[6]
-        θ = 0.0
-        N::Int32 = 4
-        Ninv = Float64(1/N)
-        for ialpha = 1:n6
-            for it=1:NT
-                for iz=1:NZ
-                    for iy=1:NY
-                        for ix=1:NX
-                            @inbounds @simd for ic=1:NC
-                                θ = Float64(rand(0:N-1))*π*Ninv # r \in [0,π/4,2π/4,3π/4]
-                                x[ic,ix,iy,iz,it,ialpha] = cos(θ)+im*sin(θ) 
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        set_wing_fermion!(x)
-
-        return
+#for GeneralizedDomainwall
+function measure(
+    m::Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec},
+    U::Array{<:AbstractGaugefields{NC,Dim},1};
+    additional_string="",
+) where {NC,Dim,TG,TD,TF,TF_vec<:LatticeDiracOperators.Dirac_operators.Abstract_GeneralizedDomainwallFermion_5D}
+    temps_fermi = get_temporary_fermionfields(m)
+    p = temps_fermi[1]
+    r = temps_fermi[2]
+    D = m.D.D5DW(U)
+    pbp = 0.0
+    Nr = m.Nr
+    measurestring = ""
+    if m.order != 1
+        tmps = zeros(ComplexF64, m.order)
+        p2 = temps_fermi[3]
+        pbps = zeros(ComplexF64, m.order)
     end
 
-    =#
+    for ir = 1:Nr
+        clear_fermion!(p)
+        Z4_distribution_fermi!(r)
+        r2 = similar(r)
+        apply_P!(r2, r)
+        apply_R!(p, r2)
+        solve_DinvX!(r, D, p)
+        tmp = dot(r2, r) # hermitian inner product
+
+        if m.order != 1
+            tmps[1] = tmp
+            for i = 2:m.order
+                solve_DinvX!(p2, D, p)
+                p, p2 = p2, p
+                tmps[i] = dot(r, p)
+            end
+            pbps .+= tmps
+        end
+
+        if m.printvalues
+            # println_verbose_level2(U[1],"# $itrj $ir $(real(tmp)/U[1].NV) # itrj irand chiralcond")
+            measurestring_ir = "# $ir $additional_string $(real(tmp)/U[1].NV) # itrj irand chiralcond"
+            if m.order != 1
+                measurestring_ir = "# $ir $additional_string"
+                for i = 1:m.order
+                    measurestring_ir *= " $(real(tmps[i])/U[1].NV) "
+                end
+                measurestring_ir *= " # itrj irand chiralcond: $(m.order)-th orders"
+            end
+            println_verbose_level2(m.verbose_print, measurestring_ir)
+            measurestring *= measurestring_ir * "\n"
+        end
+        pbp += tmp
+    end
+
+    pbp_value = real(pbp / Nr) / U[1].NV * m.factor
+    
+    if m.order != 1
+        pbp_values = real.(pbps / Nr) / U[1].NV * m.factor
+    end
+
+    if m.printvalues
+        measurestring_ir = "$pbp_value # pbp Nr=$Nr"
+        if m.order != 1
+            measurestring_ir = " "
+            for i = 1:m.order
+                measurestring_ir *= " $(pbp_values[i]) "
+            end
+            measurestring_ir *= "# pbp Nr=$Nr"
+        end
+        println_verbose_level1(m.verbose_print, measurestring_ir)
+        measurestring *= measurestring_ir * "\n"
+        flush(stdout)
+    end
+
+    if m.order != 1
+        output = Measurement_output(pbp_values, measurestring)
+    else
+        output = Measurement_output(pbp_value, measurestring)
+    end
+
+    return output
+end
