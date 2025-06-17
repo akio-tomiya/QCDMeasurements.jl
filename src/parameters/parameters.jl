@@ -255,6 +255,7 @@ Base.@kwdef mutable struct Eigenvalue_parameters <: Measurement_parameters
     which::Symbol = :SM # :SM smallest magnitude
     isDdagD::Bool = false #measure DdagD
     BoundaryCondition = [1, 1, 1, -1]
+    solver = "Arpack"
 end
 
 Base.@kwdef mutable struct MdagMspectrum_parameters <: Measurement_parameters
