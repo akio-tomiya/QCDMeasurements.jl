@@ -1,7 +1,7 @@
 name = "QCDMeasurements"
 uuid = "15719ebc-80aa-4a1c-a78b-278b460177d7"
 authors = ["Akio Tomiya, Yuki Nagai <cometscome@gmail.com> and contributors"]
-version = "0.2.10"
+version = "0.2.11"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
@@ -13,10 +13,10 @@ Wilsonloop = "f3c8d4fe-2f22-401d-8228-e6a01d7a1d02"
 
 [compat]
 Arpack = "0.5"
-Gaugefields = "0.4,0.5"
+Gaugefields = "0.4,0.5,0.6"
 LatticeDiracOperators = "0.3,0.4"
 Wilsonloop = "0.1.5"
-julia = "1.10"
+julia = "1.10,1.11"
 RSCG = "0.1"
 
 [extras]
