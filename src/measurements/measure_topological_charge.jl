@@ -258,7 +258,7 @@ function epsilon_tensor(mu::Int, nu::Int, rho::Int, sigma::Int)
     end
     if rho < 0
         sign *= -1
-        rh = -rho
+        rho = -rho
     end
     if sigma < 0
         sign *= -1
