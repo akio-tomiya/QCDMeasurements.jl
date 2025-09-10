@@ -4,10 +4,9 @@ using Gaugefields
 using LatticeDiracOperators
 using Arpack
 import LatticeDiracOperators.Dirac_operators:
-    clear_fermion!, AbstractFermionfields_4D, Z4_distribution_fermi!
+    clear_fermion!, AbstractFermionfields_4D, Z4_distribution_fermi!, apply_P!, apply_J!, apply_R!, apply_P_edge!
 import Gaugefields.Temporalfields_module: Temporalfields,
     get_temp, unused!, set_reusemode!
-
 
 include("parameters/parameters.jl")
 include("measurements/AbstractMeasurement.jl")
@@ -16,6 +15,7 @@ export Plaquette_measurement, measure, get_value, get_string
 export Polyakov_measurement
 export Pion_correlator_measurement
 export Chiral_condensate_measurement
+export Residual_mass_measurement
 export Energy_density_measurement
 export Correlation_measurement
 export Topological_charge_measurement

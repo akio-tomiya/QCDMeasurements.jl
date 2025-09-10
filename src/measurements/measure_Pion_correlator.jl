@@ -93,8 +93,12 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
         params["MaxCGstep"] = MaxCGstep
         params["boundarycondition"] = boundarycondition
 
+
+        
         D = Dirac_operator(U, x, params)
         fermi_action = FermiAction(D, parameters_action)
+        
+        
         TD = typeof(D)
         TF = typeof(fermi_action)
 
@@ -187,7 +191,7 @@ function Pion_correlator_measurement(
     if params.fermiontype == "Staggered"
         method = Pion_correlator_measurement(
             U;
-            filename=filename,
+            filename=filename, 
             cov_neural_net=cov_neural_net,
             params_tuple...
             #=
@@ -220,7 +224,8 @@ function Pion_correlator_measurement(
             =#
         )
     elseif params.fermiontype == "Domainwall"
-        error("Domainwall fermion is not implemented in Pion measurement!")
+        # error("Domainwall fermion is not implemented in Pion measurement!")
+        @warn "Pion correlator for Domainwall fermion is under construction!!"
         method = Pion_correlator_measurement(
             U;
             filename=filename,
@@ -230,10 +235,11 @@ function Pion_correlator_measurement(
             verbose_level = params.verbose_level,
             printvalues = params.printvalues,
             fermiontype = params.fermiontype,
+            mass=params.mass,
             L5 = fermionparameters.N5,
             M = fermionparameters.M,
             eps_CG = params.eps,
-            MaxCGstep = params.MaxCGstep,
+            MaxCGstep = params.MaxCGstep
             =#
         )
     else
@@ -438,7 +444,7 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     clear_fermion!(p)
     #b[ic,1,1,1,1,is] = v
     #println(dot(b,b))
-    p#rintln("ic = $ic is = $is")
+    #println("ic = $ic is = $is")
     iorigin = (1, 1, 1, 1)
     setindex_global!(b, v, ic, iorigin..., is)  # source at the origin
 
@@ -463,7 +469,9 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     #println(p[ic,2,1,1,1,is])
     #Z4_distribution_fermi!(b)
     #error("dd")
+
     @time solve_DinvX!(p, D, b)
+
     #error("dd")
     #println("norm p ",dot(p,p))
     st = "Hadron spectrum: Inversion $(i)/$(U[1].NC*m.Nspinor) is done"
@@ -472,5 +480,66 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
 
     flush(stdout)
     push!(stvec, measurestring)
+
     return deepcopy(p)
+end
+
+# for Domain wall, under construction
+function calc_quark_propagators_point_source(
+    m::Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov},
+    U::Array{<:AbstractGaugefields{NC,Dim},1},
+) where {NC,Dim,TG,TD,TF,TF_vec<:LatticeDiracOperators.Dirac_operators.Abstract_DomainwallFermion_5D,Dim_2,TCov}
+    # D^{-1} for each spin x color element
+    D = m.D.D5DW(U)
+    stvec = String[]
+    propagators = map(
+        i -> calc_quark_propagators_point_source_each(m, U, D, i, stvec),
+        1:NC*m.Nspinor,
+    )
+    st = ""
+    for i = 1:NC*m.Nspinor
+        st *= stvec[i] * "\n"
+    end
+    return propagators, st
+end
+
+function calc_quark_propagators_point_source_each(
+    m::Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov},
+    U,D,i, stvec
+) where {Dim,TG,TD,TF,TF_vec<:LatticeDiracOperators.Dirac_operators.Abstract_DomainwallFermion_5D,Dim_2,TCov}
+    temps_fermi = get_temporary_fermionfields(m)
+    measurestring = ""
+    b = temps_fermi[1]
+    p = temps_fermi[2]
+
+    Nspinor = m.Nspinor#ifelse( meas.fparam.Dirac_operator == "Staggered" ,1,4)
+    is = ((i - 1) % Nspinor) + 1 # spin index   
+    ic = ((i - is) ÷ Nspinor) + 1 # color index
+    st = "$ic $is"
+    measurestring *= st * "\n"
+    println_verbose_level1(U[1], st)
+    v = 1
+    clear_fermion!(b)
+    clear_fermion!(p)
+
+    iorigin = (1, 1, 1, 1)
+    setindex!(b, v, ic, iorigin..., is, 1)  # for domain wall fermion
+
+    c = similar(b)
+    apply_P!(c,b)
+    d = similar(b)
+    apply_R!(d,c)
+    o = similar(p)
+    @time solve_DinvX!(o, D, d)
+    apply_P_edge!(p,o)
+
+    st = "Hadron spectrum: Inversion $(i)/$(U[1].NC*m.Nspinor) is done"
+    measurestring *= st * "\n"
+    println_verbose_level1(U[1], st)
+
+    flush(stdout)
+    push!(stvec, measurestring)
+
+    return deepcopy(p.w[1])
+    
 end
