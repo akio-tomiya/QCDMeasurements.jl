@@ -28,6 +28,24 @@ Base.@kwdef mutable struct Domainwall_parameters <: Fermion_parameters
     m::Float64 = 0.1 #physical mass
 end
 
+Base.@kwdef mutable struct MobiusDomainwall_parameters <: Fermion_parameters
+    Dirac_operator::String = "MobiusDomainwall"
+    N5::Int64 = 4
+    M::Float64 = -1 #mass for Wilson operator which should be negative
+    m::Float64 = 0.1 #physical mass
+    b::Float64 = 1 #Mobius patameter b
+    c::Float64 = 1 #Mobius patameter c
+end
+
+Base.@kwdef mutable struct GeneralizedDomainwall_parameters <: Fermion_parameters
+    Dirac_operator::String = "GeneralizedDomainwall"
+    N5::Int64 = 4
+    M::Float64 = -1 #mass for Wilson operator which should be negative
+    m::Float64 = 0.1 #physical mass
+    bs::Float64 = 1 #Generalized patameter bs
+    cs::Float64 = 1 #Generalized patameter cs
+end
+
 function initialize_fermion_parameters(fermion_type)
     if fermion_type == "nothing"
         fermion_parameter = Quench_parameters()
@@ -37,6 +55,10 @@ function initialize_fermion_parameters(fermion_type)
         fermion_parameter = Staggered_parameters()
     elseif fermion_type == "Domainwall"
         fermion_parameter = Domainwall_parameters()
+    elseif fermion_type == "MobiusDomainwall"
+        fermion_parameter = MobiusDomainwall_parameters()
+    elseif fermion_type == "GeneralizedDomainwall"
+        fermion_parameter = GeneralizedDomainwall_parameters()
     else
         @error "$fermion_type is not implemented in parameters.jl"
     end
@@ -83,6 +105,9 @@ Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
     measure_every::Int64 = 10
     fermiontype::String = "Wilson"
     eps::Float64 = 1e-19
+    mass::Float64 = 0.5
+    L5::Int64 = 4
+    M::Float64 = -1
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
     stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
@@ -106,6 +131,12 @@ Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     Nf::Int64 = 4
     eps::Float64 = 1e-19
     mass::Float64 = 0.5
+    L5::Int64 = 4
+    M::Float64 = -1
+    b::Float64 = 1
+    c::Float64 = 1
+    bs::Vector{Float64} = [1,1,1,1]
+    cs::Vector{Float64} = [1,1,1,1]
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
 
@@ -117,7 +148,31 @@ Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     #stout_loops::Union{Nothing,Array{String,1}} = nothing
     verbose_level::Int64 = 2
     printvalues::Bool = true
-    Nr = 10
+    Nr::Int64 = 10
+    #smearing::Smearing_parameters = Stout_parameters()
+end
+
+Base.@kwdef mutable struct ResidualMass_parameters <: Measurement_parameters
+    #common::Measurement_common_parameters = Measurement_common_parameters()
+    methodname::String = "Residual_mass"
+    measure_every::Int64 = 10
+    fermiontype::String = "Domainwall"
+    eps::Float64 = 1e-19
+    mass::Float64 = 0.5
+    L5::Int64 = 4
+    M::Float64 = -1
+    b::Float64 = 1
+    c::Float64 = 1
+    bs::Vector{Float64} = [1,1,1,1]
+    cs::Vector{Float64} = [1,1,1,1]
+    MaxCGstep::Int64 = 3000
+    smearing_for_fermion::String = "nothing"
+    stout_numlayers::Union{Nothing,Int64} = nothing
+    stout_ρ::Union{Nothing,Array{Float64,1}} = nothing
+    stout_loops::Union{Nothing,Array{String,1}} = nothing
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+    Nr::Int64 = 10
     #smearing::Smearing_parameters = Stout_parameters()
 end
 
@@ -238,6 +293,8 @@ function initialize_measurement_parameters(methodname)
         method = TopologicalChargeDensityCorrelation_parameters()
     elseif methodname == "Chiral_condensate"
         method = ChiralCondensate_parameters()
+    elseif methodname == "Residual_mass"
+        method = ResidualMass_parameters()
     elseif methodname == "Pion_correlator"
         method = Pion_parameters()
     elseif methodname == "Energy_density"
@@ -340,6 +397,10 @@ function prepare_measurement(U, measurement_parameters::T, filename="") where {T
         filename_input = ifelse(filename == "", "Chiral_condensate.txt", filename)
         measurement =
             Chiral_condensate_measurement(U, measurement_parameters, filename_input)
+    elseif T == ResidualMass_parameters
+        filename_input = ifelse(filename == "", "Residual_mass.txt", filename)
+        measurement =
+            Residual_mass_measurement(U, measurement_parameters, filename_input)
     elseif T == Pion_parameters
         filename_input = ifelse(filename == "", "Pion_correlator.txt", filename)
         #println(measurement_parameters)
@@ -367,7 +428,6 @@ function prepare_measurement(U, measurement_parameters::T, filename="") where {T
     end
     return measurement
 end
-
 
 function make_fermionparameter_dict(U, fermiontype,
     mass,
@@ -410,6 +470,66 @@ function make_fermionparameter_dict(U, fermiontype,
     return params, parameters_action, x, factor
 end
 
+function make_fermionparameter_dict(U, fermiontype,
+    mass,
+    Nf,
+    κ,
+    r,
+    L5,
+    M,
+    b,
+    c,
+    bs,
+    cs
+)
+    Nfbase = 1
+    factor = 1
+    params = Dict()
+    parameters_action = Dict()
+    if fermiontype == "Staggered"
+        x = Initialize_pseudofermion_fields(U[1], "staggered")
+        params["Dirac_operator"] = "staggered"
+        params["mass"] = mass
+        parameters_action["Nf"] = Nf
+        Nfbase = 4
+        #Nfbase = ifelse( m.fparam.Dirac_operator == "Staggered",4,1)
+        factor = Nf / Nfbase
+    elseif fermiontype == "Wilson"
+        x = Initialize_pseudofermion_fields(U[1], "Wilson", nowing=true)
+        params["Dirac_operator"] = "Wilson"
+        params["κ"] = κ
+        params["r"] = r
+        params["faster version"] = true
+    elseif fermiontype == "Domainwall"
+        params["Dirac_operator"] = "Domainwall"
+        params["mass"] = mass
+        params["L5"] = L5
+        params["M"] = M
+        x = Initialize_pseudofermion_fields(U[1], "Domainwall", L5=L5, nowing=true)
+    elseif fermiontype == "MobiusDomainwall"
+        params["Dirac_operator"] = "MobiusDomainwall"
+        params["mass"] = mass
+        params["L5"] = L5
+        params["M"] = M
+        params["b"] = b
+        params["c"] = c
+        x = Initialize_pseudofermion_fields(U[1], "MobiusDomainwall", L5=L5, nowing=true)
+    elseif fermiontype == "GeneralizedDomainwall"
+        params["Dirac_operator"] = "GeneralizedDomainwall"
+        params["mass"] = mass
+        params["L5"] = L5
+        params["M"] = M
+        params["bs"] = bs
+        params["cs"] = cs
+        x = Initialize_pseudofermion_fields(U[1], "GeneralizedDomainwall", L5=L5, nowing=true)
+    else
+        error(
+            "fermion type $fermiontype is not supported in chiral condensate measurement",
+        )
+    end
+    return params, parameters_action, x, factor
+end
+
 function fermionparameter_params(params)
     fermionparameters = params.fermion_parameters
     #println(fermionparameters)
@@ -443,8 +563,37 @@ function fermionparameter_params(params)
             verbose_level=params.verbose_level,
             printvalues=params.printvalues,
             fermiontype=params.fermiontype,
+            mass=params.mass,
             L5=fermionparameters.N5,
             M=fermionparameters.M,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+        )
+    elseif params.fermiontype == "MobiusDomainwall"
+        #error("MobiusDomainwall fermion is not implemented in Pion measurement!")
+        params_tuple = (
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            mass=params.mass,
+            L5=fermionparameters.N5,
+            M=fermionparameters.M,
+            b=fermionparameters.b,
+            c=fermionparameters.c,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+        )
+    elseif params.fermiontype == "GeneralizedDomainwall"
+        #error("GeneralizedDomainwall fermion is not implemented in Pion measurement!")
+        params_tuple = (
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            mass=params.mass,
+            L5=fermionparameters.N5,
+            M=fermionparameters.M,
+            bs=fermionparameters.bs,
+            cs=fermionparameters.cs,
             eps_CG=params.eps,
             MaxCGstep=params.MaxCGstep,
         )
