@@ -304,7 +304,7 @@ function measure(
                                     @inbounds @simd for is2 = 1:Nspinor # Nspinor is the number of spinor index in 4d.
                                         β = spincolor(ic2, is2, NC)
                                         S[x, y, z, t, α0, β] +=
-                                            propagator[ic, x, y, z, t, is]
+                                            propagator[ic2, x, y, z, t, is2]
                                         #println( propagator[ic,x,y,z,t,is])
                                     end
                                 end

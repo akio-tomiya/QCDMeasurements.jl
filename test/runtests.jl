@@ -5,6 +5,7 @@ using Test
     # Write your tests here.
 
     include("dicttest.jl")
+    include("pion_correlator.jl")
     include("gauge.jl")
 
 end
