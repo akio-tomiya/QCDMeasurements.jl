@@ -34,6 +34,12 @@ median_iterations =
 @test length(diagnostics) == 12
 @test [diagnostic.source_number for diagnostic in diagnostics] == 1:12
 @test all(diagnostic -> diagnostic.method === :bicgstab, diagnostics)
+@test all(diagnostic -> diagnostic.restart_count >= 0, diagnostics)
+@test all(
+    diagnostic -> diagnostic.convergence_branch in
+                  (:intermediate_residual, :updated_residual),
+    diagnostics,
+)
 @test all(
     diagnostic -> 0 < diagnostic.iterations <
                   diagnostic.maximum_iterations,
@@ -118,6 +124,9 @@ evenodd_hot_diagnostics = get_solver_diagnostics(evenodd_hot_measurement)
     diagnostic ->
         diagnostic.method === :bicgstab &&
         0 < diagnostic.iterations < diagnostic.maximum_iterations &&
+        diagnostic.restart_count >= 0 &&
+        (diagnostic.convergence_branch in
+         (:intermediate_residual, :updated_residual)) &&
         isfinite(diagnostic.recursive_residual_squared) &&
         diagnostic.recursive_residual_squared <
         diagnostic.target_residual_squared &&
@@ -129,6 +138,9 @@ evenodd_hot_diagnostics = get_solver_diagnostics(evenodd_hot_measurement)
     diagnostic ->
         diagnostic.method === :preconditiond_bicgstab &&
         0 < diagnostic.iterations < diagnostic.maximum_iterations &&
+        diagnostic.restart_count >= 0 &&
+        (diagnostic.convergence_branch in
+         (:intermediate_residual, :updated_residual)) &&
         isfinite(diagnostic.recursive_residual_squared) &&
         diagnostic.recursive_residual_squared <
         diagnostic.target_residual_squared &&
