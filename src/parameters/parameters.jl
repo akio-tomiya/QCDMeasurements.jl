@@ -437,7 +437,9 @@ function fermionparameter_params(params)
             r=fermionparameters.r,
             eps_CG=params.eps,
             MaxCGstep=params.MaxCGstep,
-            method_CG=params.method_CG,
+            method_CG=hasproperty(params, :method_CG) ?
+                      params.method_CG :
+                      "bicg",
         )
     elseif params.fermiontype == "Domainwall"
         #error("Domainwall fermion is not implemented in Pion measurement!")
