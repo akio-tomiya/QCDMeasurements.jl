@@ -84,6 +84,7 @@ Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
     fermiontype::String = "Wilson"
     eps::Float64 = 1e-19
     MaxCGstep::Int64 = 3000
+    method_CG::String = "bicg"
     smearing_for_fermion::String = "nothing"
     stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
     stout_ρ::Array{Float64,1} = zeros(1)#Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
@@ -436,6 +437,7 @@ function fermionparameter_params(params)
             r=fermionparameters.r,
             eps_CG=params.eps,
             MaxCGstep=params.MaxCGstep,
+            method_CG=params.method_CG,
         )
     elseif params.fermiontype == "Domainwall"
         #error("Domainwall fermion is not implemented in Pion measurement!")
