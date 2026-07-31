@@ -218,6 +218,7 @@ function Pion_correlator_measurement(
             U;
             filename=filename,
             cov_neural_net=cov_neural_net,
+            method_CG=params.method_CG,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -237,6 +238,7 @@ function Pion_correlator_measurement(
             U;
             filename=filename,
             cov_neural_net=cov_neural_net,
+            method_CG=params.method_CG,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -254,6 +256,7 @@ function Pion_correlator_measurement(
             U;
             filename=filename,
             cov_neural_net=cov_neural_net,
+            method_CG=params.method_CG,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
