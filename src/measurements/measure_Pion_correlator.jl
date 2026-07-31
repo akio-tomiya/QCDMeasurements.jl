@@ -115,6 +115,12 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
                     ),
                 )
             params["method_CG"] = method
+            if fermiontype == "Wilson" &&
+               method == "preconditiond_bicgstab"
+                # LatticeDiracOperators currently defines its even-odd
+                # wrapper only for the standard Wilson operator.
+                params["faster version"] = false
+            end
         end
 
         D = Dirac_operator(U, x, params)

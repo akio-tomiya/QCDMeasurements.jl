@@ -55,6 +55,22 @@ median_iterations =
     method_CG="unsupported",
 )
 
+preconditioned_measurement_solver_diagnostics =
+    Pion_correlator_measurement(
+        U_solver_diagnostics;
+        fermiontype="Wilson",
+        κ=0.10,
+        method_CG="preconditiond_bicgstab",
+        verbose_level=0,
+        printvalues=false,
+    )
+@test preconditioned_measurement_solver_diagnostics.D.method_CG ==
+      "preconditiond_bicgstab"
+@test !occursin(
+    "faster",
+    string(typeof(preconditioned_measurement_solver_diagnostics.D)),
+)
+
 parameter_measurement_solver_diagnostics = Pion_correlator_measurement(
     U_solver_diagnostics,
     QCDMeasurements.Pion_parameters(
