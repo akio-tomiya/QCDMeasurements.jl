@@ -23,7 +23,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
     _temporary_fermionfields::Vector{TF_vec}
     #Nr::Int64
     Nspinor::Int64
-    S::Array{ComplexF64,Dim_2}
+    S::Union{Nothing,Array{ComplexF64,Dim_2}}
     cov_neural_net::TCov#Union{Nothing,CovNeuralnet}
     solver_diagnostics::Vector{PionSolverDiagnostic}
 
@@ -98,8 +98,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
 
         Nspinor = ifelse(fermiontype == "Staggered", 1, 4)
 
-        _, _, NN... = size(U[1])
-        S = zeros(ComplexF64, NN..., Nspinor * NC, Nspinor * NC)
+        S = nothing
 
 
         params["eps_CG"] = eps_CG
@@ -279,14 +278,48 @@ end
     return ic - 1 + (is - 1) * NC + 1
 end
 
+function _accumulate_pion_correlator!(
+    Cpi,
+    propagator,
+    NC,
+    Nspinor,
+    NN,
+)
+    length(NN) == 4 || throw(ArgumentError("only four dimensions are supported"))
+    length(Cpi) == NN[4] ||
+        throw(DimensionMismatch("expected $(NN[4]) correlator times, got $(length(Cpi))"))
+    @inbounds for t = 1:NN[4]
+        contribution = 0.0
+        for z = 1:NN[3]
+            for y = 1:NN[2]
+                for x = 1:NN[1]
+                    for sink_color = 1:NC
+                        @simd for sink_spin = 1:Nspinor
+                            contribution += abs2(
+                                propagator[
+                                    sink_color,
+                                    x,
+                                    y,
+                                    z,
+                                    t,
+                                    sink_spin,
+                                ],
+                            )
+                        end
+                    end
+                end
+            end
+        end
+        Cpi[t] += contribution
+    end
+    return Cpi
+end
 
 function measure(
     m::M,
     U::Array{<:AbstractGaugefields{NC,Dim},1};
     additional_string="",
 ) where {M<:Pion_correlator_measurement,NC,Dim}
-    S = m.S
-    S .= 0
     measurestring = ""
     st = "Hadron spectrum started"
     measurestring *= st * "\n"
@@ -295,11 +328,11 @@ function measure(
     #D = m.D(U)
     # calculate quark propagators from a point source at he origin
     if m.cov_neural_net === nothing
-        propagators, st = calc_quark_propagators_point_source(m, U)
+        Cpi, st = calc_pion_correlator_point_source(m, U)
     else
         Uout, Uout_multi, _ = calc_smearedU(U, m.cov_neural_net)
         println("smeared U is used in Pion measurement")
-        propagators, st = calc_quark_propagators_point_source(m, Uout)
+        Cpi, st = calc_pion_correlator_point_source(m, Uout)
     end
     measurestring *= st * "\n"
     #=
@@ -319,78 +352,10 @@ function measure(
 
 
 
-    #ctr = 0 # a counter
-    for ic = 1:NC
-        for is = 1:Nspinor
-            icum = (ic - 1) * Nspinor + is
-
-            propagator = propagators[icum]
-            α0 = spincolor(ic, is, NC) # source(color-spinor) index
-            # reconstruction
-            if Dim == 4
-                @inbounds for t = 1:NN[4]
-                    for z = 1:NN[3]
-                        for y = 1:NN[2]
-                            for x = 1:NN[1]
-                                for ic2 = 1:NC
-                                    @inbounds @simd for is2 = 1:Nspinor # Nspinor is the number of spinor index in 4d.
-                                        β = spincolor(ic2, is2, NC)
-                                        S[x, y, z, t, α0, β] +=
-                                            propagator[ic2, x, y, z, t, is2]
-                                        #println( propagator[ic,x,y,z,t,is])
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            else
-                error("Dim = $Dim is not supported")
-            end
-            # end for the substitution
-
-
-            #ctr+=1
-        end
-    end
-    #println(sum(S))
-    #error("prop")
-    # contruction end.
-    st = "Hadron spectrum: Reconstruction"
+    Dim == 4 || error("Dim = $Dim is not supported")
+    st = "Hadron spectrum: Contraction"
     measurestring *= st * "\n"
     println_verbose_level2(U[1], st)
-    #println("Hadron spectrum: Reconstruction")
-    Cpi = zeros(NN[end])
-    #Cpi = zeros( univ.NT )
-    # Construct Pion propagator 
-    if Dim == 4
-        @inbounds for t = 1:NN[4]
-            tmp = 0.0 + 0.0im
-            for z = 1:NN[3]
-                for y = 1:NN[2]
-                    for x = 1:NN[1]
-                        for ic = 1:NC
-                            for is = 1:Nspinor # Nspinor is the number of spinor index in 4d.
-                                α = spincolor(ic, is, NC)
-                                for ic2 = 1:NC
-                                    for is2 = 1:Nspinor # Nspinor is the number of spinor index in 4d.
-                                        β = spincolor(ic2, is2, NC)
-                                        tmp += S[x, y, z, t, α, β] * S[x, y, z, t, α, β]'#inner product.
-                                        # complex conjugate = g5 S g5.
-                                    end
-                                end
-                                # complex conjugate = g5 S g5.
-                            end
-                        end
-                    end
-                end
-            end
-            # staggered Pion correlator relies on https://itp.uni-frankfurt.de/~philipsen/theses/breitenfelder_ba.pdf (3.33)
-            # we adopt ignoreing the staggering factor. See detail above reference.
-            ksfact = 1.0 #ifelse( meas.fparam.Dirac_operator == "Staggered" , (-1)^(t-1) * 64, 1)
-            Cpi[t] = real(tmp) * ksfact
-        end
-    end
 
     #println(typeof(verbose),"\t",verbose)
     st = "Hadron spectrum end"
@@ -428,6 +393,44 @@ function measure(
 
 end
 
+function calc_pion_correlator_point_source(
+    m,
+    U::Array{<:AbstractGaugefields{NC,Dim},1},
+) where {NC,Dim}
+    D = m.D(U)
+    empty!(m.solver_diagnostics)
+    _, _, NN... = size(U[1])
+    Cpi = zeros(NN[end])
+    diagnostics = PionSolverDiagnostic[]
+    measurestrings = String[]
+    try
+        for i = 1:NC*m.Nspinor
+            result = calc_quark_propagators_point_source_each(
+                m,
+                U,
+                D,
+                i;
+                copy_propagator=false,
+            )
+            _accumulate_pion_correlator!(
+                Cpi,
+                result.propagator,
+                NC,
+                m.Nspinor,
+                NN,
+            )
+            push!(diagnostics, result.diagnostic)
+            push!(measurestrings, result.measurestring)
+        end
+    catch
+        empty!(m.solver_diagnostics)
+        rethrow()
+    end
+    m.solver_diagnostics = diagnostics
+    st = join(measurestrings, "\n") * "\n"
+    return Cpi, st
+end
+
 
 function calc_quark_propagators_point_source(
     m,
@@ -446,7 +449,13 @@ function calc_quark_propagators_point_source(
     return propagators, st
 end
 
-function calc_quark_propagators_point_source_each(m, U, D, i)
+function calc_quark_propagators_point_source_each(
+    m,
+    U,
+    D,
+    i;
+    copy_propagator=true,
+)
     # calculate D^{-1} for a given source at the origin.
     # Nc*Ns (Ns: dim of spinor, Wilson=4, ks=1) elements has to be gathered.
     # staggered Pion correlator relies on https://itp.uni-frankfurt.de/~philipsen/theses/breitenfelder_ba.pdf (3.33)
@@ -546,7 +555,7 @@ function calc_quark_propagators_point_source_each(m, U, D, i)
 
     flush(stdout)
     return (
-        propagator=deepcopy(p),
+        propagator=copy_propagator ? deepcopy(p) : p,
         diagnostic,
         measurestring,
     )
