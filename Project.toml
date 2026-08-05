@@ -11,6 +11,9 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 RSCG = "4e41d8b6-e438-5f9c-8b78-0c738ca8d379"
 Wilsonloop = "f3c8d4fe-2f22-401d-8228-e6a01d7a1d02"
 
+[sources]
+LatticeDiracOperators = {url = "https://github.com/akio-tomiya/LatticeDiracOperators.jl.git", rev = "275ea6ef666adc6254abc71488015c0c83489f09"}
+
 [compat]
 Arpack = "0.5"
 Gaugefields = "0.4,0.5,0.6,0.7"

@@ -3,6 +3,7 @@ using Wilsonloop
 using Gaugefields
 using LatticeDiracOperators
 using Arpack
+using LinearAlgebra
 import LatticeDiracOperators.Dirac_operators:
     clear_fermion!, AbstractFermionfields_4D, Z4_distribution_fermi!
 import Gaugefields.Temporalfields_module: Temporalfields,
@@ -14,7 +15,9 @@ include("measurements/AbstractMeasurement.jl")
 
 export Plaquette_measurement, measure, get_value, get_string
 export Polyakov_measurement
-export Pion_correlator_measurement
+export Pion_correlator_measurement,
+    PionSolverDiagnostic,
+    get_solver_diagnostics
 export Chiral_condensate_measurement
 export Energy_density_measurement
 export Correlation_measurement

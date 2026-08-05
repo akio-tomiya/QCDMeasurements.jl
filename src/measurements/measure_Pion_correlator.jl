@@ -1,4 +1,16 @@
 
+struct PionSolverDiagnostic
+    source_number::Int
+    source_color::Int
+    source_spin::Int
+    method::Symbol
+    iterations::Int
+    recursive_residual_squared::Float64
+    target_residual_squared::Float64
+    maximum_iterations::Int
+    true_relative_residual::Float64
+end
+
 
 mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: AbstractMeasurement
     filename::Union{Nothing,String}
@@ -13,6 +25,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
     Nspinor::Int64
     S::Array{ComplexF64,Dim_2}
     cov_neural_net::TCov#Union{Nothing,CovNeuralnet}
+    solver_diagnostics::Vector{PionSolverDiagnostic}
 
     function Pion_correlator_measurement(
         U::Vector{T};
@@ -29,7 +42,8 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
         eps_CG=1e-14,
         MaxCGstep=5000,
         BoundaryCondition=nothing,
-        cov_neural_net=nothing
+        cov_neural_net=nothing,
+        method_CG=nothing,
     ) where {T}
         NC = U[1].NC
 
@@ -92,6 +106,17 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
         params["verbose_level"] = verbose_level
         params["MaxCGstep"] = MaxCGstep
         params["boundarycondition"] = boundarycondition
+        if method_CG !== nothing
+            method = String(method_CG)
+            method in ("bicg", "bicgstab", "preconditiond_bicgstab") ||
+                throw(
+                    ArgumentError(
+                        "method_CG must be bicg, bicgstab, or " *
+                        "preconditiond_bicgstab",
+                    ),
+                )
+            params["method_CG"] = method
+        end
 
         D = Dirac_operator(U, x, params)
         fermi_action = FermiAction(D, parameters_action)
@@ -138,10 +163,14 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
             Nspinor,#::Int64
             S,#::Array{ComplexF64,3}
             cov_neural_net,
+            PionSolverDiagnostic[],
         )
     end
 
 end
+
+get_solver_diagnostics(m::Pion_correlator_measurement) =
+    copy(m.solver_diagnostics)
 
 function Pion_correlator_measurement(
     U::Vector{T},
@@ -189,6 +218,7 @@ function Pion_correlator_measurement(
             U;
             filename=filename,
             cov_neural_net=cov_neural_net,
+            method_CG=params.method_CG,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -208,6 +238,7 @@ function Pion_correlator_measurement(
             U;
             filename=filename,
             cov_neural_net=cov_neural_net,
+            method_CG=params.method_CG,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -225,6 +256,7 @@ function Pion_correlator_measurement(
             U;
             filename=filename,
             cov_neural_net=cov_neural_net,
+            method_CG=params.method_CG,
             params_tuple...
             #=
             verbose_level = params.verbose_level,
@@ -403,19 +435,18 @@ function calc_quark_propagators_point_source(
 ) where {NC,Dim}
     # D^{-1} for each spin x color element
     D = m.D(U)
-    stvec = String[]
-    propagators = map(
-        i -> calc_quark_propagators_point_source_each(m, U, D, i, stvec),
+    empty!(m.solver_diagnostics)
+    results = map(
+        i -> calc_quark_propagators_point_source_each(m, U, D, i),
         1:NC*m.Nspinor,
     )
-    st = ""
-    for i = 1:NC*m.Nspinor
-        st *= stvec[i] * "\n"
-    end
+    propagators = [result.propagator for result in results]
+    m.solver_diagnostics = [result.diagnostic for result in results]
+    st = join((result.measurestring for result in results), "\n") * "\n"
     return propagators, st
 end
 
-function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
+function calc_quark_propagators_point_source_each(m, U, D, i)
     # calculate D^{-1} for a given source at the origin.
     # Nc*Ns (Ns: dim of spinor, Wilson=4, ks=1) elements has to be gathered.
     # staggered Pion correlator relies on https://itp.uni-frankfurt.de/~philipsen/theses/breitenfelder_ba.pdf (3.33)
@@ -463,7 +494,50 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     #println(p[ic,2,1,1,1,is])
     #Z4_distribution_fermi!(b)
     #error("dd")
-    @time solve_DinvX!(p, D, b)
+    solver_result = @time solve_DinvX!(p, D, b)
+    residual = similar(p)
+    clear_fermion!(residual)
+    mul!(residual, D, p)
+    add_fermion!(residual, -1, b)
+    source_norm_squared = real(b ⋅ b)
+    source_norm_squared > 0 ||
+        error("point source has zero norm for source $i")
+    true_relative_residual =
+        sqrt(real(residual ⋅ residual) / source_norm_squared)
+
+    method = hasproperty(solver_result, :method) ?
+             Symbol(getproperty(solver_result, :method)) :
+             Symbol(D.method_CG)
+    iterations = hasproperty(solver_result, :iterations) ?
+                 Int(getproperty(solver_result, :iterations)) :
+                 -1
+    recursive_residual_squared =
+        hasproperty(solver_result, :recursive_residual_squared) ?
+        Float64(
+            getproperty(
+                solver_result,
+                :recursive_residual_squared,
+            ),
+        ) : NaN
+    target_residual_squared =
+        hasproperty(solver_result, :target_residual_squared) ?
+        Float64(getproperty(solver_result, :target_residual_squared)) :
+        Float64(D.eps_CG)
+    maximum_iterations =
+        hasproperty(solver_result, :maximum_iterations) ?
+        Int(getproperty(solver_result, :maximum_iterations)) :
+        Int(D.MaxCGstep)
+    diagnostic = PionSolverDiagnostic(
+        i,
+        ic,
+        is,
+        method,
+        iterations,
+        recursive_residual_squared,
+        target_residual_squared,
+        maximum_iterations,
+        true_relative_residual,
+    )
     #error("dd")
     #println("norm p ",dot(p,p))
     st = "Hadron spectrum: Inversion $(i)/$(U[1].NC*m.Nspinor) is done"
@@ -471,6 +545,9 @@ function calc_quark_propagators_point_source_each(m, U, D, i, stvec)
     println_verbose_level1(U[1], st)
 
     flush(stdout)
-    push!(stvec, measurestring)
-    return deepcopy(p)
+    return (
+        propagator=deepcopy(p),
+        diagnostic,
+        measurestring,
+    )
 end
