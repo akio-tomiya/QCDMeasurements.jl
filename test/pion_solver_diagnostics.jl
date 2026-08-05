@@ -30,6 +30,7 @@ median_iterations =
     (sorted_iterations[6] + sorted_iterations[7]) / 2
 
 @test length(output_solver_diagnostics) == 2
+@test measurement_solver_diagnostics.S === nothing
 @test length(diagnostics) == 12
 @test [diagnostic.source_number for diagnostic in diagnostics] == 1:12
 @test all(diagnostic -> diagnostic.method === :bicgstab, diagnostics)
