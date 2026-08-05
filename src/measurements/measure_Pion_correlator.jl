@@ -5,6 +5,8 @@ struct PionSolverDiagnostic
     source_spin::Int
     method::Symbol
     iterations::Int
+    restart_count::Int
+    convergence_branch::Symbol
     recursive_residual_squared::Float64
     target_residual_squared::Float64
     maximum_iterations::Int
@@ -115,6 +117,12 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
                     ),
                 )
             params["method_CG"] = method
+            if fermiontype == "Wilson" &&
+               method == "preconditiond_bicgstab"
+                # LatticeDiracOperators currently defines its even-odd
+                # wrapper only for the standard Wilson operator.
+                params["faster version"] = false
+            end
         end
 
         D = Dirac_operator(U, x, params)
@@ -514,34 +522,53 @@ function calc_quark_propagators_point_source_each(
     true_relative_residual =
         sqrt(real(residual ⋅ residual) / source_norm_squared)
 
-    method = hasproperty(solver_result, :method) ?
-             Symbol(getproperty(solver_result, :method)) :
-             Symbol(D.method_CG)
-    iterations = hasproperty(solver_result, :iterations) ?
-                 Int(getproperty(solver_result, :iterations)) :
-                 -1
+    required_diagnostic_properties = (
+        :method,
+        :iterations,
+        :restart_count,
+        :convergence_branch,
+        :recursive_residual_squared,
+        :target_residual_squared,
+        :maximum_iterations,
+    )
+    for property in required_diagnostic_properties
+        hasproperty(solver_result, property) || error(
+            "solver $(D.method_CG) did not report $property for source $i",
+        )
+    end
+
+    method = Symbol(getproperty(solver_result, :method))
+    iterations = Int(getproperty(solver_result, :iterations))
+    restart_count = Int(getproperty(solver_result, :restart_count))
+    convergence_branch =
+        Symbol(getproperty(solver_result, :convergence_branch))
     recursive_residual_squared =
-        hasproperty(solver_result, :recursive_residual_squared) ?
-        Float64(
-            getproperty(
-                solver_result,
-                :recursive_residual_squared,
-            ),
-        ) : NaN
+        Float64(getproperty(solver_result, :recursive_residual_squared))
     target_residual_squared =
-        hasproperty(solver_result, :target_residual_squared) ?
-        Float64(getproperty(solver_result, :target_residual_squared)) :
-        Float64(D.eps_CG)
+        Float64(getproperty(solver_result, :target_residual_squared))
     maximum_iterations =
-        hasproperty(solver_result, :maximum_iterations) ?
-        Int(getproperty(solver_result, :maximum_iterations)) :
-        Int(D.MaxCGstep)
+        Int(getproperty(solver_result, :maximum_iterations))
+
+    iterations >= 0 || error(
+        "solver $(D.method_CG) reported invalid iteration count $iterations for source $i",
+    )
+    restart_count >= 0 || error(
+        "solver $(D.method_CG) reported invalid restart count $restart_count for source $i",
+    )
+    convergence_branch !== :unknown || error(
+        "solver $(D.method_CG) did not report its convergence branch for source $i",
+    )
+    isfinite(recursive_residual_squared) || error(
+        "solver $(D.method_CG) reported a non-finite recursive residual for source $i",
+    )
     diagnostic = PionSolverDiagnostic(
         i,
         ic,
         is,
         method,
         iterations,
+        restart_count,
+        convergence_branch,
         recursive_residual_squared,
         target_residual_squared,
         maximum_iterations,

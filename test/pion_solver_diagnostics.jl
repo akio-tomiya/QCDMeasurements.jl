@@ -34,6 +34,12 @@ median_iterations =
 @test length(diagnostics) == 12
 @test [diagnostic.source_number for diagnostic in diagnostics] == 1:12
 @test all(diagnostic -> diagnostic.method === :bicgstab, diagnostics)
+@test all(diagnostic -> diagnostic.restart_count >= 0, diagnostics)
+@test all(
+    diagnostic -> diagnostic.convergence_branch in
+                  (:intermediate_residual, :updated_residual),
+    diagnostics,
+)
 @test all(
     diagnostic -> 0 < diagnostic.iterations <
                   diagnostic.maximum_iterations,
@@ -54,6 +60,120 @@ median_iterations =
     fermiontype="Wilson",
     method_CG="unsupported",
 )
+
+preconditioned_measurement_solver_diagnostics =
+    Pion_correlator_measurement(
+        U_solver_diagnostics;
+        fermiontype="Wilson",
+        κ=0.10,
+        method_CG="preconditiond_bicgstab",
+        verbose_level=0,
+        printvalues=false,
+    )
+@test preconditioned_measurement_solver_diagnostics.D.method_CG ==
+      "preconditiond_bicgstab"
+@test !occursin(
+    "faster",
+    string(typeof(preconditioned_measurement_solver_diagnostics.D)),
+)
+
+U_hot_solver_crosscheck = Initialize_Gaugefields(
+    3,
+    0,
+    2,
+    2,
+    2,
+    2;
+    condition="hot",
+    randomnumber="Reproducible",
+)
+normal_hot_measurement = Pion_correlator_measurement(
+    U_hot_solver_crosscheck;
+    fermiontype="Wilson",
+    κ=0.10,
+    r=1.0,
+    eps_CG=1.0e-20,
+    MaxCGstep=10_000,
+    BoundaryCondition=[1, 1, 1, -1],
+    method_CG="bicgstab",
+    verbose_level=0,
+    printvalues=false,
+)
+evenodd_hot_measurement = Pion_correlator_measurement(
+    U_hot_solver_crosscheck;
+    fermiontype="Wilson",
+    κ=0.10,
+    r=1.0,
+    eps_CG=1.0e-20,
+    MaxCGstep=10_000,
+    BoundaryCondition=[1, 1, 1, -1],
+    method_CG="preconditiond_bicgstab",
+    verbose_level=0,
+    printvalues=false,
+)
+normal_hot_correlator =
+    get_value(measure(normal_hot_measurement, U_hot_solver_crosscheck))
+evenodd_hot_correlator =
+    get_value(measure(evenodd_hot_measurement, U_hot_solver_crosscheck))
+normal_hot_diagnostics = get_solver_diagnostics(normal_hot_measurement)
+evenodd_hot_diagnostics = get_solver_diagnostics(evenodd_hot_measurement)
+
+@test length(normal_hot_diagnostics) == 12
+@test length(evenodd_hot_diagnostics) == 12
+@test all(
+    diagnostic ->
+        diagnostic.method === :bicgstab &&
+        0 < diagnostic.iterations < diagnostic.maximum_iterations &&
+        diagnostic.restart_count >= 0 &&
+        (diagnostic.convergence_branch in
+         (:intermediate_residual, :updated_residual)) &&
+        isfinite(diagnostic.recursive_residual_squared) &&
+        diagnostic.recursive_residual_squared <
+        diagnostic.target_residual_squared &&
+        isfinite(diagnostic.true_relative_residual) &&
+        diagnostic.true_relative_residual < 1.0e-10,
+    normal_hot_diagnostics,
+)
+@test all(
+    diagnostic ->
+        diagnostic.method === :preconditiond_bicgstab &&
+        0 < diagnostic.iterations < diagnostic.maximum_iterations &&
+        diagnostic.restart_count >= 0 &&
+        (diagnostic.convergence_branch in
+         (:intermediate_residual, :updated_residual)) &&
+        isfinite(diagnostic.recursive_residual_squared) &&
+        diagnostic.recursive_residual_squared <
+        diagnostic.target_residual_squared &&
+        isfinite(diagnostic.true_relative_residual) &&
+        diagnostic.true_relative_residual < 1.0e-10,
+    evenodd_hot_diagnostics,
+)
+hot_correlator_relative_difference = sqrt(
+    sum(abs2, evenodd_hot_correlator - normal_hot_correlator) /
+    sum(abs2, normal_hot_correlator),
+)
+@test isfinite(hot_correlator_relative_difference)
+@test hot_correlator_relative_difference < 1.0e-8
+
+normal_hot_iterations =
+    [diagnostic.iterations for diagnostic in normal_hot_diagnostics]
+evenodd_hot_iterations =
+    [diagnostic.iterations for diagnostic in evenodd_hot_diagnostics]
+normal_hot_maximum_true_relative_residual =
+    maximum(
+        diagnostic.true_relative_residual
+        for diagnostic in normal_hot_diagnostics
+    )
+evenodd_hot_maximum_true_relative_residual =
+    maximum(
+        diagnostic.true_relative_residual
+        for diagnostic in evenodd_hot_diagnostics
+    )
+@info "hot pion solver cross-check" hot_correlator_relative_difference normal_minimum_iterations =
+    minimum(normal_hot_iterations) normal_maximum_iterations =
+    maximum(normal_hot_iterations) evenodd_minimum_iterations =
+    minimum(evenodd_hot_iterations) evenodd_maximum_iterations =
+    maximum(evenodd_hot_iterations) normal_hot_maximum_true_relative_residual evenodd_hot_maximum_true_relative_residual
 
 parameter_measurement_solver_diagnostics = Pion_correlator_measurement(
     U_solver_diagnostics,
