@@ -28,19 +28,27 @@ Base.@kwdef mutable struct Domainwall_parameters <: Fermion_parameters
     m::Float64 = 0.1 #physical mass
 end
 
-function initialize_fermion_parameters(fermion_type)
-    if fermion_type == "nothing"
-        fermion_parameter = Quench_parameters()
-    elseif fermion_type == "Wilson" || fermion_type == "WilsonClover"
-        fermion_parameter = Wilson_parameters()
-    elseif fermion_type == "Staggered"
-        fermion_parameter = Staggered_parameters()
-    elseif fermion_type == "Domainwall"
-        fermion_parameter = Domainwall_parameters()
-    else
-        @error "$fermion_type is not implemented in parameters.jl"
+const FERMION_PARAMETER_TYPES = Dict{String,DataType}(
+    "nothing" => Quench_parameters,
+    "Wilson" => Wilson_parameters,
+    "WilsonClover" => Wilson_parameters,
+    "Staggered" => Staggered_parameters,
+    "Domainwall" => Domainwall_parameters,
+)
+
+function initialize_fermion_parameters(fermion_type::Union{AbstractString,Symbol})
+    name = String(fermion_type)
+    parameter_type = get(FERMION_PARAMETER_TYPES, name, nothing)
+    parameter_type === nothing && throw(ArgumentError(
+        "fermion type $name is not supported; choose one of " *
+        join(sort!(collect(keys(FERMION_PARAMETER_TYPES))), ", "),
+    ))
+    parameters = parameter_type()
+    if name == "WilsonClover"
+        parameters.Dirac_operator = "WilsonClover"
+        parameters.hasclover = true
     end
-    return fermion_parameter
+    return parameters
 end
 
 
@@ -84,6 +92,7 @@ Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
     fermiontype::String = "Wilson"
     eps::Float64 = 1e-19
     MaxCGstep::Int64 = 3000
+    method_CG::String = "bicg"
     smearing_for_fermion::String = "nothing"
     stout_numlayers::Int64 = 0#Union{Nothing,Int64} = nothing
     stout_ρ::Array{Float64,1} = zeros(1)#Vector{Float64}(undef, 1)#Union{Nothing,Array{Float64,1}} = nothing
@@ -98,6 +107,53 @@ Base.@kwdef mutable struct Pion_parameters <: Measurement_parameters
     printvalues::Bool = true
 end
 
+Base.@kwdef mutable struct MesonCorrelator_parameters <: Measurement_parameters
+    methodname::String = "Meson_correlator"
+    measure_every::Int64 = 10
+    fermiontype::String = "Wilson"
+    eps::Float64 = 1e-14
+    MaxCGstep::Int64 = 5000
+    method_CG::String = "bicg"
+    channels::Vector{String} = ["pseudoscalar"]
+    momenta::Vector{Vector{Int64}} = [[0, 0, 0]]
+    correlation_axis::Int64 = 4
+    source_position::Vector{Int64} = [1, 1, 1, 1]
+    fermion_parameters::Fermion_parameters = Wilson_parameters()
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+end
+
+Base.@kwdef mutable struct PCACMass_parameters <: Measurement_parameters
+    methodname::String = "PCAC_mass"
+    measure_every::Int64 = 10
+    fermiontype::String = "Wilson"
+    eps::Float64 = 1e-14
+    MaxCGstep::Int64 = 5000
+    method_CG::String = "bicg"
+    correlation_axis::Int64 = 4
+    source_position::Vector{Int64} = [1, 1, 1, 1]
+    improvement_coefficient::Float64 = 0.0
+    fermion_parameters::Fermion_parameters = Wilson_parameters()
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+end
+
+Base.@kwdef mutable struct DomainWallResidualMass_parameters <: Measurement_parameters
+    methodname::String = "Domainwall_residual_mass"
+    measure_every::Int64 = 10
+    fermiontype::String = "Domainwall"
+    eps::Float64 = 1e-14
+    MaxCGstep::Int64 = 5000
+    method_CG::String = "bicg"
+    correlation_axis::Int64 = 4
+    source_position::Vector{Int64} = [1, 1, 1, 1]
+    momentum::Vector{Int64} = [0, 0, 0, 0]
+    BoundaryCondition::Vector{Int64} = [1, 1, 1, -1]
+    fermion_parameters::Fermion_parameters = Domainwall_parameters()
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+end
+
 Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     #common::Measurement_common_parameters = Measurement_common_parameters()
     methodname::String = "Chiral_condensate"
@@ -106,6 +162,8 @@ Base.@kwdef mutable struct ChiralCondensate_parameters <: Measurement_parameters
     Nf::Int64 = 4
     eps::Float64 = 1e-19
     mass::Float64 = 0.5
+    hop::Float64 = 0.141139
+    r::Float64 = 1.0
     MaxCGstep::Int64 = 3000
     smearing_for_fermion::String = "nothing"
 
@@ -130,6 +188,21 @@ Base.@kwdef mutable struct Energy_density_parameters <: Measurement_parameters
     #common::Measurement_common_parameters = Measurement_common_parameters()
 end
 
+Base.@kwdef mutable struct GradientFlowScale_parameters <: Measurement_parameters
+    methodname::String = "Gradient_flow_scale"
+    measure_every::Int64 = 10
+    fermiontype::String = "nothing"
+    flow_step_size::Float64 = 0.01
+    number_of_flow_steps::Int64 = 100
+    flow_measure_every::Int64 = 1
+    energy_methods::Vector{String} = ["plaquette", "clover"]
+    measure_topological_charge::Bool = true
+    kinds_of_topological_charge::Vector{String} = ["clover"]
+    improved_topological_charge_definition::String = "alexandrou"
+    verbose_level::Int64 = 2
+    printvalues::Bool = true
+end
+
 
 
 
@@ -148,7 +221,7 @@ Base.@kwdef mutable struct Correlation_parameters <: Measurement_parameters
 end
 
 Base.@kwdef mutable struct Guluonic_correlators_parameters <: Measurement_parameters
-    methodname::String = "Correlation"
+    methodname::String = "Guluonic_correlators"
     measure_every::Int64 = 10
     fermiontype::String = "nothing"
     verbose_level::Int64 = 2
@@ -169,6 +242,7 @@ Base.@kwdef mutable struct TopologicalCharge_parameters <: Measurement_parameter
     verbose_level::Int64 = 2
     printvalues::Bool = true
     kinds_of_topological_charge::Vector{String} = ["plaquette", "clover"]
+    improved_topological_charge_definition::String = "alexandrou"
 end
 
 Base.@kwdef mutable struct TopologicalChargeDensityCorrelation_parameters <: Measurement_parameters
@@ -178,6 +252,7 @@ Base.@kwdef mutable struct TopologicalChargeDensityCorrelation_parameters <: Mea
     verbose_level::Int64 = 2
     printvalues::Bool = true
     kinds_of_topological_charge::Vector{String} = ["plaquette", "clover"]
+    improved_topological_charge_definition::String = "alexandrou"
 end
 
 
@@ -227,145 +302,191 @@ Base.@kwdef mutable struct MdagMspectrum_parameters <: Measurement_parameters
 end
 
 
-function initialize_measurement_parameters(methodname)
-    if methodname == "Plaquette"
-        method = Plaq_parameters()
-    elseif methodname == "Polyakov_loop"
-        method = Poly_parameters()
-    elseif methodname == "Topological_charge"
-        method = TopologicalCharge_parameters()
-    elseif methodname == "Topological_charge_density_correlation"
-        method = TopologicalChargeDensityCorrelation_parameters()
-    elseif methodname == "Chiral_condensate"
-        method = ChiralCondensate_parameters()
-    elseif methodname == "Pion_correlator"
-        method = Pion_parameters()
-    elseif methodname == "Energy_density"
-        method = Energy_density_parameters()
-    elseif methodname == "Correlation"
-        method = Correlation_parameters()
-    elseif methodname == "Guluonic_correlators"
-        method = Guluonic_correlators_parameters()
-    elseif methodname == "Wilson_loop"
-        method = Wilson_loop_parameters()
-    elseif methodname == "Eigenvalue"
-        method = Eigenvalue_parameters()
-    elseif methodname == "MdagMspectrum"
-        method = MdagMspectrum_parameters()
-    else
-        @error "$methodname is not implemented in parameter_structs.jl"
-    end
-    return method
+const MEASUREMENT_PARAMETER_TYPES = Dict{String,DataType}(
+    "Plaquette" => Plaq_parameters,
+    "Polyakov_loop" => Poly_parameters,
+    "Topological_charge" => TopologicalCharge_parameters,
+    "Topological_charge_density_correlation" =>
+        TopologicalChargeDensityCorrelation_parameters,
+    "Chiral_condensate" => ChiralCondensate_parameters,
+    "Pion_correlator" => Pion_parameters,
+    "Meson_correlator" => MesonCorrelator_parameters,
+    "PCAC_mass" => PCACMass_parameters,
+    "Domainwall_residual_mass" => DomainWallResidualMass_parameters,
+    "Energy_density" => Energy_density_parameters,
+    "Gradient_flow_scale" => GradientFlowScale_parameters,
+    "Correlation" => Correlation_parameters,
+    "Guluonic_correlators" => Guluonic_correlators_parameters,
+    "Gluonic_correlators" => Guluonic_correlators_parameters,
+    "Wilson_loop" => Wilson_loop_parameters,
+    "Eigenvalue" => Eigenvalue_parameters,
+    "MdagMspectrum" => MdagMspectrum_parameters,
+)
+
+function initialize_measurement_parameters(methodname::Union{AbstractString,Symbol})
+    name = String(methodname)
+    parameter_type = get(MEASUREMENT_PARAMETER_TYPES, name, nothing)
+    parameter_type === nothing && throw(ArgumentError(
+        "measurement $name is not supported; choose one of " *
+        join(sort!(collect(keys(MEASUREMENT_PARAMETER_TYPES))), ", "),
+    ))
+    return parameter_type()
 end
 
-function prepare_measurement_from_dict(U, value_i::Dict, filename="")
-    parameters = construct_Measurement_parameters_from_dict(value_i)
+function _string_keyed_dictionary(values::AbstractDict)
+    normalized = Dict{String,Any}()
+    for (key, value) in pairs(values)
+        normalized[String(key)] = value
+    end
+    return normalized
+end
+
+function _convert_parameter_value(current, value, key)
+    value === nothing && return current
+    target_type = typeof(current)
+    try
+        return convert(target_type, value)
+    catch convert_exception
+        convert_exception isa MethodError ||
+            convert_exception isa InexactError ||
+            convert_exception isa ArgumentError || rethrow()
+    end
+    try
+        return target_type(value)
+    catch constructor_exception
+        constructor_exception isa MethodError ||
+            constructor_exception isa InexactError ||
+            constructor_exception isa ArgumentError || rethrow()
+        throw(ArgumentError(
+            "parameter $key expects $target_type, but received $(typeof(value))",
+        ))
+    end
+end
+
+function prepare_measurement_from_dict(U, values::AbstractDict, filename="")
+    return prepare_measurement(U, values, filename)
+end
+
+function prepare_measurement(U, values::AbstractDict, filename="")
+    parameters = construct_Measurement_parameters_from_dict(values)
     return prepare_measurement(U, parameters, filename)
 end
 
-
-function construct_Measurement_parameters_from_dict(value_i::Dict)
-    #println(value)
-    @assert haskey(value_i, "methodname") "methodname should be set in measurement."
-    methodname = value_i["methodname"]
+function construct_Measurement_parameters_from_dict(values::AbstractDict)
+    value_i = _string_keyed_dictionary(values)
+    haskey(value_i, "methodname") || throw(ArgumentError(
+        "methodname must be set in a measurement configuration",
+    ))
+    methodname = String(value_i["methodname"])
     method = initialize_measurement_parameters(methodname)
     method_dict = struct2dict(method)
-    #println("value_i ", value_i, haskey(value_i, "Dirac_operator"), value_i["Dirac_operator"])
     if haskey(value_i, "Dirac_operator")
-        fermiontype = value_i["Dirac_operator"]
+        fermiontype = String(value_i["Dirac_operator"])
     else
         if haskey(value_i, "fermiontype")
-            if value_i["fermiontype"] == nothing
+            if value_i["fermiontype"] === nothing
                 fermiontype = method.fermiontype
-                #fermiontype = "nothing"
             else
-                fermiontype = value_i["fermiontype"]
+                fermiontype = String(value_i["fermiontype"])
             end
         else
             fermiontype = method.fermiontype
-            #fermiontype = "nothing"
         end
     end
     method.fermiontype = fermiontype
-    #println("fermiontype $fermiontype")
     fermion_parameters = initialize_fermion_parameters(fermiontype)
-    #println(fermion_parameters)
     fermion_parameters_dict = struct2dict(fermion_parameters)
-    #println("femriontype ",fermiontype)
 
     for (key_ii, value_ii) in value_i
-        #println("$key_ii $value_ii")
+        if method isa DomainWallResidualMass_parameters && key_ii == "L5"
+            key_ii = "N5"
+        elseif method isa DomainWallResidualMass_parameters && key_ii == "mass"
+            key_ii = "m"
+        elseif key_ii == "cSW" && fermiontype == "WilsonClover"
+            key_ii = "Clover_coefficient"
+        end
         if haskey(method_dict, key_ii)
-            if typeof(value_ii) != Nothing
-                #println(getfield(method, Symbol(key_ii)), "\t", Symbol(key_ii), "\t", value_ii)
-                keytype = typeof(getfield(method, Symbol(key_ii)))
-                setfield!(method, Symbol(key_ii), keytype(value_ii))
-            end
+            field = Symbol(key_ii)
+            converted = _convert_parameter_value(
+                getfield(method, field), value_ii, key_ii,
+            )
+            setfield!(method, field, converted)
+        elseif haskey(fermion_parameters_dict, key_ii)
+            field = Symbol(key_ii)
+            converted = _convert_parameter_value(
+                getfield(fermion_parameters, field), value_ii, key_ii,
+            )
+            setfield!(fermion_parameters, field, converted)
         else
-            if haskey(fermion_parameters_dict, key_ii)
-                #println("fermion $key_ii $value_ii")
-                keytype = typeof(getfield(fermion_parameters, Symbol(key_ii)))
-                setfield!(fermion_parameters, Symbol(key_ii), keytype(value_ii))
-            else
-                @warn "$key_ii is not found! in $(typeof(method))"
-            end
+            throw(ArgumentError(
+                "unknown parameter $key_ii for $(typeof(method))",
+            ))
         end
     end
 
     if haskey(method_dict, "fermion_parameters")
-        setfield!(method, Symbol("fermion_parameters"), fermion_parameters)
+        setfield!(method, :fermion_parameters, fermion_parameters)
     end
-    value_out = deepcopy(method)
-    #println(value_out)
-
-    return value_out
+    return method
 end
 
-function prepare_measurement(U, measurement_parameters::T, filename="") where {T}
-    if T == Plaq_parameters
-        filename_input = ifelse(filename == "", "Plaquette.txt", filename)
-        measurement = Plaquette_measurement(U, measurement_parameters, filename_input)
-    elseif T == Poly_parameters
-        filename_input = ifelse(filename == "", "Polyakov_loop.txt", filename)
-        measurement = Polyakov_measurement(U, measurement_parameters, filename_input)
-    elseif T == TopologicalCharge_parameters
-        filename_input = ifelse(filename == "", "Topological_charge.txt", filename)
-        measurement =
-            Topological_charge_measurement(U, measurement_parameters, filename_input)
-    elseif T == TopologicalChargeDensityCorrelation_parameters
-        filename_input = ifelse(filename == "", "Topological_charge_density_correlation.txt", filename)
-        measurement =
-            Topological_charge_density_correlation_measurement(U, measurement_parameters, filename_input)
-    elseif T == ChiralCondensate_parameters
-        filename_input = ifelse(filename == "", "Chiral_condensate.txt", filename)
-        measurement =
-            Chiral_condensate_measurement(U, measurement_parameters, filename_input)
-    elseif T == Pion_parameters
-        filename_input = ifelse(filename == "", "Pion_correlator.txt", filename)
-        #println(measurement_parameters)
-        measurement = Pion_correlator_measurement(U, measurement_parameters, filename_input)
-    elseif T == Energy_density_parameters
-        filename_input = ifelse(filename == "", "Energy_density.txt", filename)
-        measurement = Energy_density_measurement(U, measurement_parameters, filename_input)
-    elseif T == Correlation_parameters
-        filename_input = ifelse(filename == "", "Correlation.txt", filename)
-        measurement = Correlation_measurement(U, measurement_parameters, filename_input)
-    elseif T == Guluonic_correlators_parameters
-        filename_input = ifelse(filename == "", "Guluonic_correlators.txt", filename)
-        measurement = Guluonic_correlators_measurement(U, measurement_parameters, filename_input)
-    elseif T == Wilson_loop_parameters
-        filename_input = ifelse(filename == "", "Wilson_loop.txt", filename)
-        measurement = Wilson_loop_measurement(U, measurement_parameters, filename_input)
-    elseif T == Eigenvalue_parameters
-        filename_input = ifelse(filename == "", "Eigenvalues.txt", filename)
-        measurement = Eigenvalue_measurement(U, measurement_parameters, filename_input)
-    elseif T == MdagMspectrum_parameters
-        filename_input = ifelse(filename == "", "MdagMspectrum.txt", filename)
-        measurement = MdagMspectrum_measurement(U, measurement_parameters, filename_input)
-    else
-        error(T, " is not supported in measurements")
-    end
-    return measurement
+_measurement_filename(filename, default) =
+    isempty(filename) ? default : String(filename)
+
+prepare_measurement(U, parameters::Plaq_parameters, filename="") =
+    Plaquette_measurement(U, parameters, _measurement_filename(filename, "Plaquette.txt"))
+prepare_measurement(U, parameters::Poly_parameters, filename="") =
+    Polyakov_measurement(U, parameters, _measurement_filename(filename, "Polyakov_loop.txt"))
+prepare_measurement(U, parameters::TopologicalCharge_parameters, filename="") =
+    Topological_charge_measurement(
+        U, parameters, _measurement_filename(filename, "Topological_charge.txt"))
+prepare_measurement(
+    U, parameters::TopologicalChargeDensityCorrelation_parameters, filename="",
+) = Topological_charge_density_correlation_measurement(
+    U,
+    parameters,
+    _measurement_filename(filename, "Topological_charge_density_correlation.txt"),
+)
+prepare_measurement(U, parameters::ChiralCondensate_parameters, filename="") =
+    Chiral_condensate_measurement(
+        U, parameters, _measurement_filename(filename, "Chiral_condensate.txt"))
+prepare_measurement(U, parameters::Pion_parameters, filename="") =
+    Pion_correlator_measurement(
+        U, parameters, _measurement_filename(filename, "Pion_correlator.txt"))
+prepare_measurement(U, parameters::MesonCorrelator_parameters, filename="") =
+    Meson_correlator_measurement(
+        U, parameters, _measurement_filename(filename, "Meson_correlator.txt"))
+prepare_measurement(U, parameters::PCACMass_parameters, filename="") =
+    PCAC_mass_measurement(U, parameters, _measurement_filename(filename, "PCAC_mass.txt"))
+prepare_measurement(U, parameters::DomainWallResidualMass_parameters, filename="") =
+    Domainwall_residual_mass_measurement(
+        U,
+        parameters,
+        _measurement_filename(filename, "Domainwall_residual_mass.txt"),
+    )
+prepare_measurement(U, parameters::Energy_density_parameters, filename="") =
+    Energy_density_measurement(
+        U, parameters, _measurement_filename(filename, "Energy_density.txt"))
+prepare_measurement(U, parameters::GradientFlowScale_parameters, filename="") =
+    GradientFlowScale_measurement(
+        U, parameters, _measurement_filename(filename, "Gradient_flow_scale.txt"))
+prepare_measurement(U, parameters::Correlation_parameters, filename="") =
+    Correlation_measurement(U, parameters, _measurement_filename(filename, "Correlation.txt"))
+prepare_measurement(U, parameters::Guluonic_correlators_parameters, filename="") =
+    Guluonic_correlators_measurement(
+        U, parameters, _measurement_filename(filename, "Gluonic_correlators.txt"))
+prepare_measurement(U, parameters::Wilson_loop_parameters, filename="") =
+    Wilson_loop_measurement(U, parameters, _measurement_filename(filename, "Wilson_loop.txt"))
+prepare_measurement(U, parameters::Eigenvalue_parameters, filename="") =
+    Eigenvalue_measurement(U, parameters, _measurement_filename(filename, "Eigenvalues.txt"))
+prepare_measurement(U, parameters::MdagMspectrum_parameters, filename="") =
+    MdagMspectrum_measurement(
+        U, parameters, _measurement_filename(filename, "MdagMspectrum.txt"))
+
+function prepare_measurement(U, parameters::Measurement_parameters, filename="")
+    throw(ArgumentError(
+        "measurement parameters $(typeof(parameters)) are not supported",
+    ))
 end
 
 
@@ -375,7 +496,8 @@ function make_fermionparameter_dict(U, fermiontype,
     κ,
     r,
     L5,
-    M,
+    M;
+    cSW=1.5612,
 )
     Nfbase = 1
     factor = 1
@@ -396,6 +518,13 @@ function make_fermionparameter_dict(U, fermiontype,
         params["κ"] = κ
         params["r"] = r
         params["faster version"] = true
+    elseif fermiontype == "WilsonClover"
+        x = Initialize_pseudofermion_fields(U[1], "Wilson", nowing=true)
+        params["Dirac_operator"] = "WilsonClover"
+        params["κ"] = κ
+        params["r"] = r
+        params["cSW"] = cSW
+        params["faster version"] = false
     elseif fermiontype == "Domainwall"
         params["Dirac_operator"] = "Domainwall"
         params["mass"] = mass
@@ -425,15 +554,13 @@ function fermionparameter_params(params)
             MaxCGstep=params.MaxCGstep,
         )
     elseif params.fermiontype == "Wilson" || params.fermiontype == "WilsonClover"
-        if fermionparameters.hasclover
-            error("WilsonClover is not implemented in Pion measurement")
-        end
         params_tuple = (
             verbose_level=params.verbose_level,
             printvalues=params.printvalues,
             fermiontype=params.fermiontype,
             κ=fermionparameters.hop,
             r=fermionparameters.r,
+            cSW=fermionparameters.Clover_coefficient,
             eps_CG=params.eps,
             MaxCGstep=params.MaxCGstep,
         )

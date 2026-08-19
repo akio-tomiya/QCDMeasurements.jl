@@ -33,6 +33,10 @@ mutable struct Chiral_condensate_measurement{Dim,TG,TD,TF,TF_vec,TCov} <: Abstra
         order=1,
         cov_neural_net=nothing
     ) where {T}
+        fermiontype in ("Wilson", "Staggered") || throw(ArgumentError(
+            "ChiralCondensateMeasurement currently supports Wilson and " *
+            "Staggered fermions; got $fermiontype",
+        ))
 
         Dim = length(U)
         if BoundaryCondition == nothing
@@ -201,12 +205,26 @@ function Chiral_condensate_measurement(
             Nr=params.Nr,
             cov_neural_net=cov_neural_net,
         )
+    elseif params.fermiontype == "Wilson"
+        method = Chiral_condensate_measurement(
+            U;
+            filename=filename,
+            verbose_level=params.verbose_level,
+            printvalues=params.printvalues,
+            fermiontype=params.fermiontype,
+            κ=params.hop,
+            r=params.r,
+            eps_CG=params.eps,
+            MaxCGstep=params.MaxCGstep,
+            Nr=params.Nr,
+            cov_neural_net=cov_neural_net,
+        )
     else
-        error("$(params.fermiontype) is not supported in Chiral_condensate_measurement")
+        throw(ArgumentError(
+            "$(params.fermiontype) is not supported by ChiralCondensateMeasurement",
+        ))
     end
 
-
-    #途中
     return method
 end
 

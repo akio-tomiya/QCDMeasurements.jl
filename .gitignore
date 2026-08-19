@@ -1,2 +1,4 @@
 /Manifest.toml
+/test/gpu/Manifest.toml
+/test/mpi/Manifest.toml
 /docs/build/
