@@ -1,0 +1,42 @@
+Grid domain-wall residual-mass reference
+========================================
+
+Grid commit: 0ac72cb6a30ccdc41d664e7e0759f0c8833078f1
+Driver: qcdm_domainwall_mres_reference.cc
+Precision/backend: double, CPU AVX-512
+Lattice: 4 x 4 x 4 x 4
+Gauge field: cold except
+  U_1(0,0,0,0) = diag(exp(1.1i), exp(-1.1i), 1)
+Plaquette: 0.99857707323287903
+Fermion: Shamir DomainWallFermionD
+mass: 0.1
+M5: 1.0
+Ls: 4
+Boundary condition: periodic spatial, antiperiodic temporal
+Source: unit point source at the origin, all 12 spin-colour columns
+Solver: SchurRedBlackDiagMooeeSolve with CG tolerance 1e-14
+
+The timeslices below are Grid's physical surface-field PP correlator,
+ContractJ5q midpoint correlator, and their pointwise ratio. The small imaginary
+parts are retained as an additional regression diagnostic.
+
+t=0
+  pp    = (0.14592222922302317, 5.4286636189814794e-20)
+  j5q   = (0.049655759640000491, 1.6361798280871522e-21)
+  ratio = (0.34028920682199909, -1.153832190724432e-19)
+t=1
+  pp    = (0.097088345874940141, 2.041030642822601e-20)
+  j5q   = (0.0028730807215859382, 1.9668614644521858e-22)
+  ratio = (0.029592436617333705, -4.1951950999048721e-21)
+t=2
+  pp    = (0.059072177389470064, 6.7600199723056984e-21)
+  j5q   = (0.00020791404200740403, 4.3292054124976462e-23)
+  ratio = (0.0035196610518789819, 3.3008898571603821e-22)
+t=3
+  pp    = (0.097088345874940141, 1.0307496632516971e-21)
+  j5q   = (0.0028730807215859378, 1.1579717795075363e-21)
+  ratio = (0.029592436617333698, 1.1612818977075992e-20)
+
+These are raw per-configuration timeslice ratios, not a plateau fit. A physics
+estimate of m_res must specify the fit window and, for production use, perform
+the ensemble average/fit prescribed by the analysis.

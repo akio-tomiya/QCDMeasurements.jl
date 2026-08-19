@@ -8,6 +8,7 @@ mutable struct Topological_charge_density_correlation_measurement{Dim,TG} <: Abs
     verbose_print::Union{Verbose_print,Nothing}
     printvalues::Bool
     TC_methods::Vector{String}
+    improved_topological_charge_definition::String
 
     function Topological_charge_density_correlation_measurement(
         U::Vector{T};
@@ -15,9 +16,13 @@ mutable struct Topological_charge_density_correlation_measurement{Dim,TG} <: Abs
         verbose_level=2,
         printvalues=false,
         TC_methods=["plaquette"],
+        improved_topological_charge_definition="alexandrou",
     ) where {T}
         myrank = get_myrank(U)
         NC = U[1].NC
+        improved_definition = _validate_improved_topological_charge_definition(
+            improved_topological_charge_definition,
+        )
 
         if printvalues
             verbose_print = Verbose_print(verbose_level, myid=myrank, filename=filename)
@@ -52,6 +57,7 @@ mutable struct Topological_charge_density_correlation_measurement{Dim,TG} <: Abs
             verbose_print,
             printvalues,
             TC_methods,
+            improved_definition,
         )
 
     end
@@ -72,6 +78,8 @@ function Topological_charge_density_correlation_measurement(
         verbose_level=params.verbose_level,
         printvalues=params.printvalues,
         TC_methods=params.kinds_of_topological_charge, #["plaquette"]
+        improved_topological_charge_definition=
+            params.improved_topological_charge_definition,
     )
 
 end
@@ -84,13 +92,12 @@ function measure(
     additional_string="",
 ) where {M<:Topological_charge_density_correlation_measurement,NC,Dim}
     temps = m._temporary_matrices
-    temp1 = temps[1]
-    temp2 = temps[2]
     measurestring = ""
 
     nummethod = length(m.TC_methods)
     values = Float64[]
     valuedic = Dict{String,Float64}()
+    output_labels = String[]
     printstring = " " * additional_string
     for i = 1:nummethod
         methodname = m.TC_methods[i]
@@ -100,25 +107,54 @@ function measure(
             Qplaq2 = calculate_topological_charge_plaq(U, loop1position .+ relativeposition,
                 m.temp_UμνTA, temps)
             QQ = Qplaq1 * Qplaq2
-            push!(values, QQ)
-            valuedic["plaquette"] = QQ
+            push!(values, real(QQ))
+            valuedic["plaquette"] = real(QQ)
+            push!(output_labels, "Qplaq")
         elseif methodname == "clover"
             Qclover1 = calculate_topological_charge_clover(U, loop1position,
                 m.temp_UμνTA, temps)
             Qclover2 = calculate_topological_charge_clover(U, loop1position .+ relativeposition,
                 m.temp_UμνTA, temps)
             QQ = Qclover1 * Qclover2
-            push!(values, QQ)
-            valuedic["clover"] = QQ
-            Qimproved1 =
-                calculate_topological_charge_improved(U, loop1position,
-                    m.temp_UμνTA, Qclover1, temps)
-            Qimproved2 =
-                calculate_topological_charge_improved(U, loop1position .+ relativeposition,
-                    m.temp_UμνTA, Qclover2, temps)
-            QQ = Qimproved1 * Qimproved2
-            push!(values, QQ)
-            valuedic["clover improved"] = QQ
+            push!(values, real(QQ))
+            valuedic["clover"] = real(QQ)
+            push!(output_labels, "Qclover")
+            definition = m.improved_topological_charge_definition
+            if definition in ("alexandrou", "both")
+                Qimproved1 = calculate_topological_charge_improved(
+                    U, loop1position, m.temp_UμνTA, Qclover1, temps,
+                )
+                Qimproved2 = calculate_topological_charge_improved(
+                    U, loop1position .+ relativeposition,
+                    m.temp_UμνTA, Qclover2, temps,
+                )
+                QQ = Qimproved1 * Qimproved2
+                push!(values, real(QQ))
+                valuedic[_ALEXANDROU_IMPROVED_KEY] = real(QQ)
+                push!(output_labels, "Qimproved_alexandrou")
+            end
+            if definition in ("bilson_thompson", "both")
+                # The field-strength construction needs the clover tensor at
+                # the same site as each rectangle tensor, so evaluate each
+                # clover/improved pair consecutively.
+                Qclover1 = calculate_topological_charge_clover(
+                    U, loop1position, m.temp_UμνTA, temps,
+                )
+                Qimproved1 = calculate_topological_charge_bilson_thompson(
+                    U, loop1position, m.temp_UμνTA, Qclover1, temps,
+                )
+                second_position = loop1position .+ relativeposition
+                Qclover2 = calculate_topological_charge_clover(
+                    U, second_position, m.temp_UμνTA, temps,
+                )
+                Qimproved2 = calculate_topological_charge_bilson_thompson(
+                    U, second_position, m.temp_UμνTA, Qclover2, temps,
+                )
+                QQ = Qimproved1 * Qimproved2
+                push!(values, real(QQ))
+                valuedic[_BILSON_THOMPSON_IMPROVED_KEY] = real(QQ)
+                push!(output_labels, "Qimproved_bilson_thompson")
+            end
         else
             error("method $methodname is not supported in topological charge measurement")
         end
@@ -127,18 +163,7 @@ function measure(
     for value in values
         printstring *= "$(value) "
     end
-    printstring *= "#  "
-
-    for i = 1:nummethod
-        methodname = m.TC_methods[i]
-        if methodname == "plaquette"
-            printstring *= "Qplaq "
-        elseif methodname == "clover"
-            printstring *= "Qclover Qimproved "
-        else
-            error("method $methodname is not supported in topological charge measurement")
-        end
-    end
+    printstring *= "#  " * join(output_labels, " ") * " "
 
     if m.printvalues
         #println_verbose_level2(U[1],"-----------------")
@@ -181,21 +206,88 @@ function calculate_topological_charge_improved(
     Qclover,
     temps,
 ) where {T}
-    UμνTA = temp_UμνTA
-    #numofloops = calc_UμνTA!(UμνTA,"clover",U)
-    #Qclover = calc_Q(UμνTA,numofloops,U)
+    rectangle_loops = calc_UμνTA!(
+        temp_UμνTA, position, "rect", U, temps,
+    )
+    Qrectangle = 2 * calc_Q_each(temp_UμνTA, rectangle_loops, U)
+    return (5 / 3) * Qclover - (1 / 12) * Qrectangle
+end
 
-    numofloops = calc_UμνTA!(UμνTA,
-        position,
-        "rect", U, temps)
+function calculate_topological_charge_bilson_thompson(
+    U::Array{T,1},
+    position,
+    temp_UμνTA,
+    Qclover,
+    temps,
+) where {T}
+    clover_rectangle_cross =
+        calculate_topological_charge_cross_rect_clover_eachsite(
+            U, position, temp_UμνTA, temps,
+        )
+    rectangle_loops = calc_UμνTA!(
+        temp_UμνTA, position, "rect", U, temps,
+    )
+    Qrectangle = calc_Q_each(temp_UμνTA, rectangle_loops, U)
 
-    #numofloops = calc_UμνTA!(UμνTA, "rect", U, temps)
+    clover_coefficient = 5 / 3
+    rectangle_coefficient = -1 / 6
+    return clover_coefficient^2 * Qclover +
+           2 * clover_coefficient * rectangle_coefficient *
+           clover_rectangle_cross +
+           4 * rectangle_coefficient^2 * Qrectangle
+end
 
-    Qrect = 2 * calc_Q_each(UμνTA, numofloops, U)
-    c1 = -1 / 12
-    c0 = 5 / 3
-    Q = c0 * Qclover + c1 * Qrect
-    return Q
+function calculate_topological_charge_cross_rect_clover_eachsite(
+    U::Array{<:AbstractGaugefields{NC,Dim},1},
+    position,
+    clover_UμνTA,
+    temps,
+) where {NC,Dim}
+    Dim == 4 || error("Dimension $Dim is not supported")
+    rectangle_loops, _ = calc_loopset_μν_name("rect", Dim)
+    indices = Tuple(position)
+    evaluated_loop = temps[1]
+    rectangle_UμνTA = temps[2]
+    cross_term = 0.0
+
+    for μ in 1:Dim
+        for ν in 1:Dim
+            μ == ν && continue
+            evaluate_gaugelinks_eachsite!(
+                evaluated_loop,
+                rectangle_loops[μ, ν],
+                U,
+                temps[2:end],
+                indices...,
+            )
+            _traceless_antihermitian_matrix!(rectangle_UμνTA, evaluated_loop)
+            for ρ in 1:Dim
+                for σ in 1:Dim
+                    ρ == σ && continue
+                    cross_term += epsilon_tensor(μ, ν, ρ, σ) *
+                                  tr(rectangle_UμνTA * clover_UμνTA[ρ, σ])
+                end
+            end
+        end
+    end
+
+    return -cross_term / (32 * π^2 * 4^2)
+end
+
+function _traceless_antihermitian_matrix!(output, input)
+    NC = size(input, 1)
+    diagonal_imaginary_part = sum(imag(input[k, k]) for k in 1:NC) / NC
+    for k in 1:NC
+        output[k, k] = (imag(input[k, k]) - diagonal_imaginary_part) * im
+    end
+    for column in 1:NC
+        for row in (column + 1):NC
+            value = 0.5 * (input[column, row] - conj(input[row, column]))
+            output[column, row] = value
+            output[row, column] = -conj(value)
+        end
+    end
+    return output
 end
 
 function calc_UμνTA!(
@@ -231,7 +323,7 @@ function calc_UμνTA!(
             end
             V1 = temps[1]
 
-            Gaugefields.AbstractGaugefields_module.evaluate_gaugelinks_eachsite!(
+            evaluate_gaugelinks_eachsite!(
                 V1,
                 loops_μν[μ, ν],
                 U,
@@ -292,5 +384,3 @@ function calc_Q_each(UμνTA, numofloops, U::Array{<:AbstractGaugefields{NC,Dim}
 
     return -Q / (32 * (π^2))
 end
-
-

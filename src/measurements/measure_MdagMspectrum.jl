@@ -33,6 +33,13 @@ mutable struct MdagMspectrum_measurement{Dim,TG,TD} <: AbstractMeasurement
         numdatapoints=3000,
         position=(1, 1)
     ) where {T}
+        numdatapoints >= 2 || throw(ArgumentError(
+            "numdatapoints must be at least two",
+        ))
+        eta > 0 || throw(ArgumentError("eta must be positive"))
+        all(>(0), position) || throw(ArgumentError(
+            "position indices must be positive",
+        ))
         myrank = get_myrank(U)
         #=
         if U[1].mpi == false
@@ -136,6 +143,13 @@ end
 
 
 
+"""
+    measure(m::MdagMspectrum_measurement, U)
+
+Measure the local spectral density of `D' * D`,
+`rho_ij(E) = -imag(((E + im*eta)I - D'D)^(-1)[i,j]) / pi`, using the
+reduced-shifted conjugate-gradient solver from RSCG.jl.
+"""
 function measure(m::M, U; additional_string="", maxiter=3000) where {M<:MdagMspectrum_measurement}
     #temps = get_temporary_gaugefields(m)
     #poly = calculate_Polyakov_loop(U, temps[1], temps[2])
@@ -146,7 +160,7 @@ function measure(m::M, U; additional_string="", maxiter=3000) where {M<:MdagMspe
     n, _ = size(DdagD)
     i, j = m.position
     Gij1 = greensfunctions(i, j, m.σ, DdagD)
-    ρ = imag.(Gij1) / (-1 / (π))
+    ρ = -imag.(Gij1) ./ π
     vals = ρ
 
     #println_verbose_level2(m.verbose_print,"done...")

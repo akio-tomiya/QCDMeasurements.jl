@@ -121,14 +121,14 @@ function measure(
 
         V1 = zeros(ComplexF64, NC, NC)
         V2 = zeros(ComplexF64, NC, NC)
-        Gaugefields.AbstractGaugefields_module.evaluate_gaugelinks_eachsite!(
+        evaluate_gaugelinks_eachsite!(
             V1,
             m.loop1,
             U,
             mat_temps,
             indices...,
         )
-        Gaugefields.AbstractGaugefields_module.evaluate_gaugelinks_eachsite!(
+        evaluate_gaugelinks_eachsite!(
             V2,
             m.loop2,
             U,
@@ -154,7 +154,7 @@ function measure(
         evaluate_gaugelinks!(g1, m.loop1, U, temps)
         evaluate_gaugelinks!(g2, m.loop2, U, temps)
 
-        g2shifted = Gaugefields.AbstractGaugefields_module.shift_U(g2, Tuple(m.relativeposition))
+        g2shifted = shift_U(g2, Tuple(m.relativeposition))
         substitute_U!(temps[1], g2shifted)
 
         map_U!(

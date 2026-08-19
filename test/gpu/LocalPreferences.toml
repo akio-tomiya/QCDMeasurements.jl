@@ -1,0 +1,5 @@
+[JACC]
+backend = "cuda"
+default_backend = "cuda"
+backends = ["cuda"]
+placement = {cuda = "none"}
