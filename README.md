@@ -9,8 +9,29 @@ and [LatticeMatrices.jl](https://github.com/JuliaQCD/LatticeMatrices.jl).
 
 <img src="LQCDjl_block.png" width=300> 
 
+## Breaking changes in v1.0
+
+Compared with QCDMeasurements v0.3, v1.0 has the following compatibility
+changes:
+
+- The supported dependency stack is now Gaugefields 1.0.3 or later within
+  major version 1, LatticeDiracOperators 1.x, and LatticeMatrices 1.1.2 or
+  later within major version 1. Environments pinned to Gaugefields 0.7,
+  LatticeDiracOperators 0.6, or an earlier LatticeMatrices release must update
+  those packages together.
+- Measurement configuration dictionaries are now validated strictly. Missing
+  `methodname` entries, unknown option names, invalid value conversions, and
+  unsupported fermion/measurement combinations raise `ArgumentError` instead
+  of allowing an incomplete or silently ignored configuration.
+
+The underscore-style measurement names and `prepare_measurement_from_dict`
+remain compatibility aliases, so existing callers can migrate gradually.
+Gaugefields' `LegacyBackend()` has not been removed; the examples below use
+the Gaugefields v1 default LatticeMatrices/JACC backend.
+
 ## Contents
 
+- [Breaking changes in v1.0](#breaking-changes-in-v10)
 - [Requirements](#requirements)
 - [Quick start](#quick-start)
 - [Supported measurements](#supported-measurements)
@@ -152,7 +173,7 @@ connected contraction convention is
 ```math
 C_{\Gamma_2\Gamma_1}(\Delta,p) =
 -\sum_{x:\,x_a-x_{0,a}=\Delta} e^{-ip\cdot(x-x_0)}
-\operatorname{tr}_{c,s}
+\mathrm{tr}_{c,s}
 [\Gamma_2 S_2(x,x_0)\bar\Gamma_1 S_1(x_0,x)],
 ```
 
@@ -323,7 +344,7 @@ zero-momentum pseudoscalar two-point function (the pion channel),
 
 ```math
 C_{PP}(t,\mathbf{0}) =
-\sum_{\mathbf{x}} \operatorname{tr}_{c,s}
+\sum_{\mathbf{x}} \mathrm{tr}_{c,s}
 [S(\mathbf{x},t;0) S(\mathbf{x},t;0)^\dagger],
 ```
 
@@ -523,7 +544,7 @@ C_{A_4P}(t)=\sum_{\mathbf{x}}\langle A_4(\mathbf{x},t)P(0)\rangle,
 and returns the bare PCAC mass in lattice units,
 
 ```math
-am_{\rm PCAC}(t)=
+am_{\mathrm{PCAC}}(t)=
 \frac{\widetilde\partial_4 C_{A_4P}(t)
       +c_A\,\partial_4^*\partial_4 C_{PP}(t)}{2C_{PP}(t)}.
 ```
@@ -759,7 +780,7 @@ charge, from S. O. Bilson-Thompson, D. B. Leinweber, and A. G. Williams,
 The present implementation specializes that construction to the tree-level
 `1x1 + 1x2` improved tensor.  This two-loop tensor and its use in the
 topological charge are also described by P. T. Jahn, G. D. Moore, and
-D. Robaina, "Estimating $\chi_{\rm top}$ lattice artifacts from flowed SU(2)
+D. Robaina, "Estimating $\chi_{\mathrm{top}}$ lattice artifacts from flowed SU(2)
 calorons," *Eur. Phys. J. C* **79**, 510 (2019),
 [DOI: 10.1140/epjc/s10052-019-7008-9](https://doi.org/10.1140/epjc/s10052-019-7008-9),
 [arXiv:1805.11511](https://arxiv.org/abs/1805.11511).
