@@ -5,7 +5,7 @@ configurations provided by
 [Gaugefields.jl](https://github.com/akio-tomiya/Gaugefields.jl). Fermionic
 measurements use
 [LatticeDiracOperators.jl](https://github.com/akio-tomiya/LatticeDiracOperators.jl)
-and [LatticeMatrices.jl](https://github.com/JuliaQCD/LatticeMatrices.jl).
+and [LatticeMatrices.jl](https://github.com/cometscome/LatticeMatrices.jl).
 
 <img src="LQCDjl_block.png" width=300> 
 
