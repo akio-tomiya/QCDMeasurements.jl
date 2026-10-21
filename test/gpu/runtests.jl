@@ -25,6 +25,7 @@ MPI.Initialized() || MPI.Init()
     )
     @test gauge_backend(U) isa LatticeMatricesBackend
     @test getproperty(U[1].U, :A) isa CUDA.CuArray
+    include(joinpath(@__DIR__, "..", "gauge_density_backends.jl"))
 
     plaquette = get_value(measure(PlaquetteMeasurement(U), U))
     polyakov = get_value(measure(PolyakovMeasurement(U), U))

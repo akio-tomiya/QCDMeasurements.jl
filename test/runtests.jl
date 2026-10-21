@@ -10,6 +10,8 @@ using Test
     include("dependency_compatibility.jl")
     include("public_api.jl")
     include("basic_measurements.jl")
+    include("gauge_density.jl")
+    include("gauge_density_backends.jl")
     include("legacy_measurements.jl")
     include("gradient_flow_scale.jl")
     include("simulateqcd_gradient_flow_reference.jl")

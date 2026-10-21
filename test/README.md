@@ -5,6 +5,19 @@ run in CI. The tests use small lattices and do not write generated results into
 the package source tree.
 
 - `basic_measurements.jl` checks gluonic observables on a cold field.
+- `gauge_density.jl` checks the four public topological density definitions on
+  unit links and deterministic non-Abelian, noncubic SU(2)/SU(3) fields. It
+  compares sums with the scalar measurements and selected sites with the
+  existing pointwise loop implementation. Action-density averages are checked
+  against the gradient-flow observables. It also tests workspace reuse, input
+  immutability, CPU backend parity, and argument validation.
+- `gauge_density_backends.jl` checks CPU, GPU, MPI, and GPU+MPI calculations
+  against `references/gauge_density_v1.toml`, generated using the unmodified
+  pre-change commit `5576729`. It compares all 360 sites of every density on
+  noncubic SU(2)/SU(3) fields, scalar charges and action averages, both allocating
+  and reusable APIs, input immutability, and reuse on unit links. Multiple MPI
+  decompositions and legacy MPI rank ordering are covered. Input links are
+  checked against a SHA-256 digest of the baseline configuration.
 - `legacy_measurements.jl` gives the previously example-only Wilson-loop,
   loop-correlation, gluonic-correlation, topological-density-correlation,
   chiral-condensate, eigenvalue, and local spectral-density measurements
@@ -56,6 +69,72 @@ the package source tree.
 
 `dicttest.jl` and `gauge.jl` are retained as legacy, long-running integration
 examples. They write output files and are not included by `runtests.jl`.
+
+## Density API validation (2026-10-21)
+
+The density change was validated on Linux with Julia 1.11.8,
+Gaugefields 1.1.11, LatticeMatrices 1.2.8, LatticeDiracOperators 1.1.3,
+JACC 1.4.0, MPI 0.20.27, and CUDA.jl 6.4.0.
+CPU and GPU use the same JACC kernels; MPI collects the
+local scalar fields into the complete host array on every rank.
+
+| Run | Result |
+|---|---|
+| Complete CPU suite, 4 Julia threads, one MPI rank | 575/575 passed |
+| Complete CPU suite, 2 MPI ranks, 2 Julia threads per rank | 641/641 passed on each rank |
+| Density regression, CPU, 4 MPI ranks | 221/221 passed on each rank |
+| Complete GPU suite, NVIDIA H100 NVL | 136/136 passed |
+| Density regression, H100, 2 MPI ranks sharing one GPU | 441/441 passed on each rank |
+| Density regression, RTX PRO 6000 Blackwell, 4 MPI ranks sharing one GPU | 221/221 passed on each rank |
+| Density regression, 2 MPI ranks on separate H100 and Blackwell GPUs | 441/441 passed on each rank |
+| Independent pre-change/post-change comparison without MPI loaded | 48/48 passed |
+
+The baseline is the unmodified commit
+`5576729f81c07955df01bee1f13d1ae12017f2e1`, run in a separate environment with
+the same dependencies and deterministic input links. The three cases are
+noncubic `3×4×5×6` SU(3) LatticeMatrices, SU(3) legacy, and SU(2)
+LatticeMatrices fields. An independent before/after run passed **48/48**
+checks: the existing four scalar charges, both action averages, and historical
+energy observable were bitwise unchanged at four Julia threads. Against the
+old pointwise implementation, the largest absolute differences were
+`2.78e-17` for topological density and `8.89e-16` for action density. Differences
+in the density sums/averages arise from floating-point reduction order.
+
+`references/gauge_density_v1.toml` freezes every lattice site, scalar
+observables, and input SHA-256 digests. To regenerate it, activate an environment
+pointing to the old commit (not this working tree), with the versions above:
+
+```sh
+JULIA_NUM_THREADS=4 OPENBLAS_NUM_THREADS=1 julia --project=/path/to/baseline-env \
+    test/references/generate_gauge_density_v1.jl /tmp/gauge_density_v1.toml
+```
+
+The generator checks the old source's SHA-256 and the thread count. Its output
+was independently regenerated and compared exactly with the frozen fixture.
+Backend regressions use tolerances because device arithmetic and MPI/thread
+reduction orders can differ. They compare every site, both allocating and
+reusable calls, all scalar observables, input immutability, and reuse after
+switching to unit links. The two-rank tests split Y and T separately; four-rank
+tests split both Y and T (`1×2×1×2`), including the legacy rank permutation.
+
+Run the standalone density regression with CPU or GPU preferences and any
+supported rank count, for example:
+
+```sh
+julia --project=test/gpu -e '
+    using MPI
+    run(`$(MPI.mpiexec()) -n 4 $(Base.julia_cmd())
+        --startup-file=no --project=test/gpu test/run_gauge_density_backends.jl`)
+'
+```
+
+For JACC 1.4, select `default_backend = "cuda"` and `backends = ["cuda"]`
+in the environment's JACC preferences. The legacy `backend` preference alone
+does not select CUDA in that version. A GPU UUID in `CUDA_VISIBLE_DEVICES`
+unambiguously selects the device. GPU+MPI was tested both with ranks sharing
+one visible GPU and with two ranks assigned to separate H100 and Blackwell
+GPUs. The latter run confirmed rank 0 on H100 and rank 1 on Blackwell. These
+runs use host-staged MPI communication.
 
 ## H100/CUDA validation
 

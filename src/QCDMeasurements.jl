@@ -1,9 +1,13 @@
 module QCDMeasurements
 using Wilsonloop
 using Gaugefields
+# Keep this API distinct from Gaugefields' function of the same name.
+function topological_charge_density end
+
 using LatticeDiracOperators
 using Arpack
 using LinearAlgebra
+import JACC
 import LatticeDiracOperators: clear_fermion!, Z4_distribution_fermi!
 import Gaugefields:
     Temporalfields,
@@ -11,6 +15,7 @@ import Gaugefields:
     get_temp,
     shift_U,
     unused!
+import LatticeMatrices
 import LatticeMatrices:
     projected_bilinear_slices,
     set_global_component!
@@ -117,6 +122,8 @@ export Energy_density_measurement
 export Correlation_measurement
 export Guluonic_correlators_measurement
 export Topological_charge_measurement
+export topological_charge_density, topological_charge_density!,
+    action_density, action_density!, GaugeDensityWorkspace
 export GradientFlowScale_measurement,
     GradientFlowHistory,
     GradientFlowScaleEstimate,
