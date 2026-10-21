@@ -274,6 +274,7 @@ function calculate_topological_charge_cross_rect_clover(
             for ρ in 1:Dim
                 for σ in 1:Dim
                     ρ == σ && continue
+                    (μ == ρ || μ == σ || ν == ρ || ν == σ) && continue
                     cross_term += epsilon_tensor(μ, ν, ρ, σ) *
                                   tr(rectangle_UμνTA, clover_UμνTA[ρ, σ])
                 end
@@ -350,6 +351,9 @@ function calc_Q(UμνTA, numofloops, U::Array{<:AbstractGaugefields{NC,Dim},1}) 
                     if ρ == σ
                         continue
                     end
+                    # Only 24 of the 144 ordered plane pairs have nonzero
+                    # epsilon. Skip the other pairs before the global trace.
+                    (μ == ρ || μ == σ || ν == ρ || ν == σ) && continue
                     Uρσ = UμνTA[ρ, σ]
                     s = tr(Uμν, Uρσ)
                     Q += ε(μ, ν, ρ, σ) * s / numofloops^2

@@ -1,5 +1,7 @@
 # QCDMeasurements.jl
 
+Version 1.0.1 adds four-dimensional topological and action density APIs with JACC CPU/GPU and MPI support; see [changes.md](changes.md).
+
 QCDMeasurements.jl calculates lattice-QCD observables from gauge
 configurations provided by
 [Gaugefields.jl](https://github.com/akio-tomiya/Gaugefields.jl). Fermionic
@@ -36,6 +38,7 @@ the Gaugefields v1 default LatticeMatrices/JACC backend.
 - [Quick start](#quick-start)
 - [Supported measurements](#supported-measurements)
 - [Gauge observables](#gauge-observables)
+- [Local topological and action densities](#local-topological-and-action-densities)
 - [Generalized local meson correlators](#generalized-local-meson-correlators)
 - [Independent validation](#independent-validation)
 - [Shamir domain-wall residual mass](#shamir-domain-wall-residual-mass)
@@ -162,6 +165,72 @@ On a cold SU(3) field, `plaquette == 1`, `polyakov_loop == 3 + 0im`, and all
 reported topological charges vanish. The later
 [topological-charge section](#improved-topological-charge-definitions) shows
 how to select either improved definition or calculate both.
+
+## Local topological and action densities
+
+For visualization, the density APIs return ordinary `Array{Float64,4}` values
+with axes `(X,Y,Z,T)`. Four-dimensional CPU, GPU, MPI, and GPU+MPI fields use
+the same JACC contraction kernels. Gaugefields constructs the loops and
+exchanges halos; LatticeMatrices collects the scalar density field. Legacy CPU
+and legacy MPI representations are also supported.
+
+For MPI configurations these APIs are collective: every rank in the input
+communicator must call the same method, and every rank receives the complete
+global array in the same coordinate order. GPU contractions remain on the
+device; the final scalar density is copied to host memory for the return value
+and MPI collection. Each rank therefore needs space for one global host array.
+
+```julia
+q = QCDMeasurements.topological_charge_density(U; method="clover")
+Q = sum(q)
+e = action_density(U; method="clover")
+average_energy = sum(e) / length(e)
+```
+
+Qualify `QCDMeasurements.topological_charge_density` when also using
+Gaugefields, which exports a separate function of the same name. The new API
+does not change the Gaugefields function. String and symbol method names are
+accepted. Each call calculates only the selected definition:
+
+| Density method | Matching `TopologicalChargeMeasurement` output key |
+|---|---|
+| `"plaquette"` | `"plaquette"` |
+| `"clover"` | `"clover"` |
+| `"alexandrou"` | `"clover improved"` |
+| `"bilson_thompson"` | `"clover improved bilson-thompson"` |
+
+`sum(q)` matches the corresponding charge up to floating-point summation
+roundoff. A cell contains dimensionless `a^4 q_phys`, with the existing sign
+and loop normalization; no volume averaging is applied. Alexandrou improves
+the density directly, whereas Bilson--Thompson improves the field strength
+before its quadratic contraction, retaining the cross terms.
+
+`action_density` supports `"plaquette"` and `"clover"`. Its volume average
+matches the corresponding `GradientFlowHistory.energy_density` entry returned
+by `GradientFlowScaleMeasurement`.
+In the clover case it is `-sum(real(tr(F[μ,ν]^2)), μ<ν)`, where
+`F = TA(sum of four clover loops)/4`. The plaquette case is
+`2sum(Nc - real(tr(P[μ,ν])), μ<ν)`. No factor of `β`, `1/g^2`, or `a^-4` is
+included. Both definitions vanish for unit links. This differs from the
+historical `EnergyDensityMeasurement`, which returns one for unit links;
+that measurement keeps its existing behavior.
+
+For a sequence of configurations or flow times, reuse the output arrays and
+loop workspace:
+
+```julia
+workspace = GaugeDensityWorkspace(U)
+topological_charge_density!(q, U, workspace; method="bilson_thompson")
+action_density!(e, U, workspace; method="clover")
+```
+
+The mutating forms overwrite and return their output array and leave the input
+links unchanged. Reuse a workspace only for the same field type, dimensions,
+halo width, communicator, and process decomposition, and do not share it between
+concurrent calls. Workspaces cache
+loop paths and storage, not the field strength of an earlier configuration.
+See [the validation record](test/README.md#density-api-validation-2026-10-21)
+for comparisons with the pre-change implementation and CPU/GPU/MPI tests.
 
 ## Generalized local meson correlators
 
