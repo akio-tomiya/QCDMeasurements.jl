@@ -87,6 +87,7 @@ mutable struct Pion_correlator_measurement{Dim,TG,TD,TF,TF_vec,Dim_2,TCov} <: Ab
             L5,
             M,
             cSW=cSW,
+            boundarycondition=boundarycondition,
         )        #=
         params = Dict()
         parameters_action = Dict()

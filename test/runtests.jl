@@ -23,6 +23,7 @@ using Test
     include("wilson_clover_reference.jl")
     include("pion_correlator.jl")
     include("pion_solver_diagnostics.jl")
+    include("wilson_boundary_conditions.jl")
 end
 
 # `dicttest.jl` and `gauge.jl` are retained as legacy integration examples.

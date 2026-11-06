@@ -1,5 +1,7 @@
 # QCDMeasurements.jl
 
+Wilson/Clover pion and meson measurements pass their boundary conditions to fermion-field initialization, enabling consistent periodic and antiperiodic propagators with the corresponding LatticeDiracOperators fix; see [changes.md](changes.md).
+
 Version 1.0.1 adds four-dimensional topological and action density APIs with JACC CPU/GPU and MPI support; see [changes.md](changes.md).
 
 QCDMeasurements.jl calculates lattice-QCD observables from gauge

@@ -498,6 +498,7 @@ function make_fermionparameter_dict(U, fermiontype,
     L5,
     M;
     cSW=1.5612,
+    boundarycondition=nothing,
 )
     Nfbase = 1
     factor = 1
@@ -513,13 +514,17 @@ function make_fermionparameter_dict(U, fermiontype,
         factor = Nf / Nfbase
 
     elseif fermiontype == "Wilson"
-        x = Initialize_pseudofermion_fields(U[1], "Wilson", nowing=true)
+        field_kwargs = boundarycondition === nothing ? (; nowing=true) :
+            (; nowing=true, boundarycondition)
+        x = Initialize_pseudofermion_fields(U[1], "Wilson"; field_kwargs...)
         params["Dirac_operator"] = "Wilson"
         params["κ"] = κ
         params["r"] = r
         params["faster version"] = true
     elseif fermiontype == "WilsonClover"
-        x = Initialize_pseudofermion_fields(U[1], "Wilson", nowing=true)
+        field_kwargs = boundarycondition === nothing ? (; nowing=true) :
+            (; nowing=true, boundarycondition)
+        x = Initialize_pseudofermion_fields(U[1], "Wilson"; field_kwargs...)
         params["Dirac_operator"] = "WilsonClover"
         params["κ"] = κ
         params["r"] = r

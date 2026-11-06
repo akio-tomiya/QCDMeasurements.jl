@@ -1,5 +1,15 @@
 # Changes
 
+## Unreleased
+
+- Pass the requested boundary conditions through Wilson and WilsonClover
+  fermion-field initialization for pion and meson correlators. With the
+  corresponding LatticeDiracOperators boundary-condition fix, periodic and
+  antiperiodic propagators use matching field and operator phases instead of
+  failing at solve time. The default temporal antiperiodic boundary is unchanged.
+- Add free-field pion and pseudoscalar meson regressions against an independent
+  Fourier-space propagator for temporal and spatial boundary choices.
+
 ## 1.0.1 — 2026-10-21
 
 ### Density APIs
