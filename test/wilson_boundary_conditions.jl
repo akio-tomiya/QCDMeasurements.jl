@@ -13,6 +13,7 @@ end
 
 # Free-field Fourier propagator: independent of the iterative solver and halos.
 function free_pion(dims, bc; kappa=0.1, colors=3)
+    any(iszero,bc) && return wall_pion(dims,bc;kappa,colors)
     gamma = LatticeDiracOperators.Dirac_operators.mk_gamma(1.0)[1]
     propagator = zeros(ComplexF64,4,4,dims...)
     for mode in CartesianIndices(dims)
@@ -29,12 +30,30 @@ function free_pion(dims, bc; kappa=0.1, colors=3)
     [colors*sum(abs2,@view propagator[:,:,:,:,:,t]) for t in 1:dims[4]]
 end
 
+# Independent dense Dirac matrix for a free field with an absorbing wall.
+function wall_pion(dims,bc;kappa=0.1,colors=3)
+    gamma=LatticeDiracOperators.Dirac_operators.mk_gamma(1.0)[1]
+    D=Matrix{ComplexF64}(I,4prod(dims),4prod(dims))
+    indices=LinearIndices(dims)
+    block(pos)=4*(indices[pos...]-1).+(1:4)
+    for site in CartesianIndices(dims),mu in 1:4,sign in (-1,1)
+        pos=Tuple(site)
+        raw=pos[mu]+sign
+        factor=1<=raw<=dims[mu] ? 1 : bc[mu]
+        src=ntuple(d->d==mu ? mod1(raw,dims[d]) : pos[d],4)
+        D[block(pos),block(src)].-=kappa*factor.*(I-sign*gamma[:,:,mu])
+    end
+    source=zeros(ComplexF64,4prod(dims),4);source[1:4,:].=Matrix{ComplexF64}(I,4,4)
+    propagator=D\source
+    [colors*sum(abs2,view(propagator,4prod(dims[1:3])*(t-1)+1:4prod(dims[1:3])*t,:)) for t in 1:dims[4]]
+end
+
 @testset "Wilson measurement boundary conditions" begin
     nprocs = distributed ? MPI.Comm_size(MPI.COMM_WORLD) : 1
     dims = (4,2,2,4)
     U = Initialize_Gaugefields(3,1,dims...;condition="cold",isMPILattice=true,
         PEs=(1,1,1,nprocs),verbose_level=0)
-    for bc in ([1,1,1,-1],[1,1,1,1],[-1,1,1,-1])
+    for bc in ([1,1,1,-1],[1,1,1,1],[-1,1,1,-1],[1,1,1,0],[0,1,1,0])
         expected = free_pion(dims,bc)
         for family in ("Wilson","WilsonClover")
             kwargs = (;fermiontype=family,κ=0.1,cSW=1.17,

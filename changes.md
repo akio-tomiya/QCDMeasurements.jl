@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Support Wilson/Clover pion and meson correlators with zero boundary phases
+  through the coordinated LatticeMatrices/LatticeDiracOperators updates.
+  Add independent dense Dirac-matrix reference solves for temporal walls and
+  intersecting spatial/temporal walls, preserving periodic/antiperiodic tests.
+
 - Pass the requested boundary conditions through Wilson and WilsonClover
   fermion-field initialization for pion and meson correlators. With the
   corresponding LatticeDiracOperators boundary-condition fix, periodic and
