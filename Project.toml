@@ -1,7 +1,7 @@
 name = "QCDMeasurements"
 uuid = "15719ebc-80aa-4a1c-a78b-278b460177d7"
 authors = ["Akio Tomiya, Yuki Nagai <cometscome@gmail.com> and contributors"]
-version = "1.0.1"
+version = "1.0.2"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
@@ -21,10 +21,10 @@ QCDMeasurementsMPIExt = "MPI"
 
 [compat]
 Arpack = "0.5"
-Gaugefields = "1.0.3"
+Gaugefields = "1.1.12"
 JACC = "0.6,1"
-LatticeDiracOperators = "1"
-LatticeMatrices = "1.1.2"
+LatticeDiracOperators = "1.1.5"
+LatticeMatrices = "1.2.11"
 MPI = "0.20"
 StaticArrays = "1.9"
 Wilsonloop = "0.1"

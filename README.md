@@ -1,6 +1,6 @@
 # QCDMeasurements.jl
 
-Version 1.0.1 adds four-dimensional topological and action density APIs with JACC CPU/GPU and MPI support; see [changes.md](changes.md).
+Version 1.0.2 fixes Wilson/Clover pion and meson boundary propagation and supports zero-phase hopping walls on CPU, GPU, MPI, and MPI+GPU through JACC; see [changes.md](changes.md).
 
 QCDMeasurements.jl calculates lattice-QCD observables from gauge
 configurations provided by
@@ -11,29 +11,8 @@ and [LatticeMatrices.jl](https://github.com/cometscome/LatticeMatrices.jl).
 
 <img src="LQCDjl_block.png" width=300> 
 
-## Breaking changes in v1.0
-
-Compared with QCDMeasurements v0.3, v1.0 has the following compatibility
-changes:
-
-- The supported dependency stack is now Gaugefields 1.0.3 or later within
-  major version 1, LatticeDiracOperators 1.x, and LatticeMatrices 1.1.2 or
-  later within major version 1. Environments pinned to Gaugefields 0.7,
-  LatticeDiracOperators 0.6, or an earlier LatticeMatrices release must update
-  those packages together.
-- Measurement configuration dictionaries are now validated strictly. Missing
-  `methodname` entries, unknown option names, invalid value conversions, and
-  unsupported fermion/measurement combinations raise `ArgumentError` instead
-  of allowing an incomplete or silently ignored configuration.
-
-The underscore-style measurement names and `prepare_measurement_from_dict`
-remain compatibility aliases, so existing callers can migrate gradually.
-Gaugefields' `LegacyBackend()` has not been removed; the examples below use
-the Gaugefields v1 default LatticeMatrices/JACC backend.
-
 ## Contents
 
-- [Breaking changes in v1.0](#breaking-changes-in-v10)
 - [Requirements](#requirements)
 - [Quick start](#quick-start)
 - [Supported measurements](#supported-measurements)
@@ -49,13 +28,13 @@ the Gaugefields v1 default LatticeMatrices/JACC backend.
 
 ## Requirements
 
-QCDMeasurements 1.0 requires Gaugefields 1.0.3, LatticeDiracOperators 1.x, and
-LatticeMatrices 1.1.2 or later. Gaugefields 1.0.2 introduced the public
-top-level gauge-link evaluation and temporary-field APIs used here, while
-1.0.3 fixes an ambiguity between gauge-field-vector `similar` methods and
-Pkg/TOML's empty `Vector{Union{}}`. LatticeMatrices 1.1.2 introduced the
-physical-surface and midpoint kernels required by the domain-wall measurement.
-QCDMeasurements no longer imports dependency-internal modules.
+QCDMeasurements requires Gaugefields 1.1.12, LatticeDiracOperators 1.1.5,
+and LatticeMatrices 1.2.11 or later compatible 1.x releases. These minimum
+versions include the coordinated Wilson boundary fixes and Float32 kernel
+fixes. Dependencies are available as registered packages; sibling development
+checkouts are not required. For historical migration notes, see
+[changes.md](changes.md#previous-release-highlights).
+QCDMeasurements uses the public dependency APIs.
 Gaugefields v1's default `gauge_configuration` backend uses JACC, so add JACC
 to the application environment and initialize the selected backend once at
 startup.
@@ -342,10 +321,10 @@ measurement = prepare_measurement(
 )
 ```
 
-The accelerator/distributed contraction methods live in LatticeMatrices 1.1.2,
+The accelerator/distributed contraction methods are provided by LatticeMatrices,
 which is a direct QCDMeasurements dependency. QCDMeasurements imports its
 JACC/MPI implementation directly; it performs one `MPI.Allreduce` per projected
-correlator. QCDMeasurements supports LatticeMatrices 1.1.2 and later.
+correlator. The current minimum supported LatticeMatrices version is 1.2.11.
 
 `gauge_configuration` selects the LatticeMatrices backend by default. The
 same constructor is used for CPU, GPU, and MPI execution; select the JACC
