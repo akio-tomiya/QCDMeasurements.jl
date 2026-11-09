@@ -10,16 +10,13 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]
-Gaugefields = {path = "../../../Gaugefields-v1"}
-LatticeDiracOperators = {path = "../../../LatticeDiracOperators-v1"}
-LatticeMatrices = {path = "../../../LatticeMatrices-v1.1.0"}
 QCDMeasurements = {path = "../.."}
 
 [compat]
-Gaugefields = "1.0.3"
+Gaugefields = "1.1.12"
 JACC = "1.3"
-LatticeDiracOperators = "1"
-LatticeMatrices = "1.1.2"
+LatticeDiracOperators = "1.1.5"
+LatticeMatrices = "1.2.11"
 MPI = "0.20"
 QCDMeasurements = "1"
 StaticArrays = "1.9"

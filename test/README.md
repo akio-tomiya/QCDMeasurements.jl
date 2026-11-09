@@ -62,6 +62,10 @@ the package source tree.
   improved-topology selection and the Alexandrou formula directly.
 - `dependency_compatibility.jl` checks the supported Gaugefields,
   LatticeDiracOperators, and LatticeMatrices version ranges.
+- `wilson_boundary_conditions.jl` checks Wilson/Clover pion and pseudoscalar
+  meson correlators with periodic, antiperiodic, and zero boundary phases.
+  Independent Fourier propagators cover nonzero phases; dense Dirac-matrix
+  solves cover temporal and intersecting spatial/temporal hopping walls.
 - `pion_correlator.jl` compares the Wilson pion measurement with a direct
   color-spin contraction and guards the sink-index regression.
 - `pion_solver_diagnostics.jl` checks solver outcomes, failure handling,
@@ -138,8 +142,10 @@ runs use host-staged MPI communication.
 
 ## H100/CUDA validation
 
-`gpu/runtests.jl` is an opt-in accelerator test. It uses the sibling local v1
-work trees through `gpu/Project.toml` and selects JACC's CUDA backend through
+`gpu/runtests.jl` is an opt-in accelerator test. Its `gpu/Project.toml` uses
+registered Gaugefields, LatticeDiracOperators, and LatticeMatrices packages,
+with only QCDMeasurements loaded from this checkout. It selects JACC's CUDA
+backend through
 `gpu/LocalPreferences.toml`. It checks that the gauge storage is a `CuArray`,
 then compares cold-field gauge observables and Wilson pion/generalized-meson
 correlators with the same frozen CPU/Grid-normalized values used by the normal
@@ -152,6 +158,7 @@ Finally it runs the Shamir domain-wall physical/midpoint measurement and checks
 Run it on one GPU with:
 
 ```sh
+julia --project=test/gpu -e 'using Pkg; Pkg.instantiate()'
 CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0 \
     julia --project=test/gpu test/gpu/runtests.jl
 ```
@@ -159,11 +166,12 @@ CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0 \
 ## Local two-rank validation
 
 `mpi/Project.toml` is the CPU/MPI counterpart of the GPU environment. It also
-resolves the four sibling v1 work trees and runs the normal suite on every
-rank, including the distributed LatticeMatrices pion/domain-wall contractions
+uses registered dependencies with this QCDMeasurements checkout and runs the
+normal suite on every rank, including the distributed LatticeMatrices pion/domain-wall contractions
 and the Wilson-clover/domain-wall Grid references. From the repository root:
 
 ```sh
+julia --project=test/mpi -e 'using Pkg; Pkg.instantiate()'
 julia --project=test/mpi -e '
     using MPI
     run(`$(MPI.mpiexec()) -n 2 $(Base.julia_cmd()) \

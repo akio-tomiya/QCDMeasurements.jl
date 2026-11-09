@@ -1,7 +1,35 @@
 # Changes
 
-## Unreleased
+## Previous release highlights
 
+- **1.0.1:** Four-dimensional topological and action density APIs with JACC
+  CPU/GPU and MPI support.
+
+### Breaking changes in v1.0
+
+Compared with QCDMeasurements v0.3, v1.0 has the following compatibility
+changes:
+
+- At the v1.0 release, the supported dependency stack became Gaugefields
+  1.0.3 or later within major version 1, LatticeDiracOperators 1.x, and
+  LatticeMatrices 1.1.2 or later within major version 1. Environments pinned to Gaugefields 0.7,
+  LatticeDiracOperators 0.6, or an earlier LatticeMatrices release must update
+  those packages together.
+- Measurement configuration dictionaries are now validated strictly. Missing
+  `methodname` entries, unknown option names, invalid value conversions, and
+  unsupported fermion/measurement combinations raise `ArgumentError` instead
+  of allowing an incomplete or silently ignored configuration.
+
+The underscore-style measurement names and `prepare_measurement_from_dict`
+remain compatibility aliases, so existing callers can migrate gradually.
+Gaugefields' `LegacyBackend()` has not been removed; the [README](README.md)
+examples use the Gaugefields v1 default LatticeMatrices/JACC backend.
+
+## 1.0.2 — 2026-11-09
+
+- Require Gaugefields 1.1.12, LatticeDiracOperators 1.1.5, and LatticeMatrices
+  1.2.11 or later compatible 1.x releases. Update CI and MPI/GPU test
+  environments to use the supported registered dependency versions.
 - Support Wilson/Clover pion and meson correlators with zero boundary phases
   through the coordinated LatticeMatrices/LatticeDiracOperators updates.
   Add independent dense Dirac-matrix reference solves for temporal walls and
