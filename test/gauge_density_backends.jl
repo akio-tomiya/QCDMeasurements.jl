@@ -1,17 +1,14 @@
-using Gaugefields, LatticeMatrices, LinearAlgebra, Random, SHA, TOML
+using Gaugefields, LatticeMatrices, SHA, TOML
 
-# Construct exactly the same SU(N) links used for the pre-change reference.
-# Host construction is independent of process decomposition and device backend.
-function density_reference_links(L, colors)
-    links = Array{ComplexF64}(undef, colors, colors, L..., 4)
-    rng = MersenneTwister(210426)
-    for site in CartesianIndices(L), μ in 1:4
-        A = randn(rng, ComplexF64, colors, colors)
-        H = A + A'
-        H -= tr(H) / colors * I
-        links[:, :, Tuple(site)..., μ] = exp(0.25im * H)
-    end
-    return links
+# Load the exact baseline input: regenerating exp(0.25im * H) can differ in
+# low bits between BLAS/platforms even with the same seeded random matrices.
+# Files contain little-endian ComplexF64 in (mu, color, color, X, Y, Z, T) order.
+function density_reference_links(L, colors, reference)
+    bytes = read(joinpath(@__DIR__, "references", "gauge_density_su$colors.bin"))
+    @test bytes2hex(sha256(bytes)) == reference["input_sha256"]
+    words = ltoh.(reinterpret(UInt64, bytes))
+    baseline = reshape(reinterpret(ComplexF64, words), 4, colors, colors, L...)
+    return permutedims(baseline, (2, 3, 4, 5, 6, 7, 1))
 end
 
 function density_backend_field(links, grid; halo=1, legacy=false)
@@ -54,10 +51,7 @@ end
     for colors in (2, 3), grid in grids, legacy in layouts
         label = legacy && colors == 3 ? "legacy_su3" : "lm_su$colors"
         reference = fixture["cases"][label]
-        links = density_reference_links(L, colors)
-        digest = bytes2hex(sha256(reinterpret(UInt8,
-            vec(permutedims(links, (7, 1, 2, 3, 4, 5, 6))))))
-        @test digest == reference["input_sha256"]
+        links = density_reference_links(L, colors, reference)
         U = density_backend_field(links, grid; legacy)
         arrays = legacy ? [link.U for link in U] : [link.U.A for link in U]
         @test legacy ? arrays[1] isa Array : arrays[1] isa JACC.array_type()

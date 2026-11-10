@@ -62,15 +62,13 @@ jobs:
       - name: Run the test suite on two MPI ranks
         shell: bash
         run: >-
-          julia --startup-file=no -e '
+          julia --startup-file=no --project=test/mpi -e '
             using Pkg;
-            Pkg.activate(; temp=true);
-            Pkg.develop(Pkg.PackageSpec(path=pwd()));
-            Pkg.add(["JACC", "MPI", "Random", "StaticArrays", "Test"]);
+            Pkg.instantiate();
             project = dirname(Base.active_project());
             using MPI;
             run(`$(MPI.mpiexec()) -n 2 $(Base.julia_cmd())
-              --startup-file=no --project=$project test/runtests.jl`);
+              --startup-file=no --project=$project test/mpi/runtests.jl`);
           '
 
   latticematrices-compat:
