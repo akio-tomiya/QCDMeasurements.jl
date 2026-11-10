@@ -14,6 +14,7 @@ and [LatticeMatrices.jl](https://github.com/cometscome/LatticeMatrices.jl).
 ## Contents
 
 - [Requirements](#requirements)
+- [Installation](#installation)
 - [Quick start](#quick-start)
 - [Supported measurements](#supported-measurements)
 - [Gauge observables](#gauge-observables)
@@ -38,6 +39,18 @@ QCDMeasurements uses the public dependency APIs.
 Gaugefields v1's default `gauge_configuration` backend uses JACC, so add JACC
 to the application environment and initialize the selected backend once at
 startup.
+
+## Installation
+
+The examples below load `JACC`, `Gaugefields`, and `QCDMeasurements` directly,
+so add all three packages to the active environment. Adding only
+`QCDMeasurements` is not sufficient: `import JACC` and `using Gaugefields`
+then fail with `Package ... not found in current path`.
+
+```julia
+using Pkg
+Pkg.add(["QCDMeasurements", "Gaugefields", "JACC"])
+```
 
 ## Quick start
 
