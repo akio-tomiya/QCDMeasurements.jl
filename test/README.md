@@ -17,7 +17,10 @@ the package source tree.
   noncubic SU(2)/SU(3) fields, scalar charges and action averages, both allocating
   and reusable APIs, input immutability, and reuse on unit links. Multiple MPI
   decompositions and legacy MPI rank ordering are covered. Input links are
-  checked against a SHA-256 digest of the baseline configuration.
+  loaded from frozen binary fixtures and checked against the original SHA-256
+  digests of the baseline configurations. This avoids requiring bitwise
+  reproducibility of random-number generation and matrix exponentials across
+  operating systems and BLAS implementations.
 - `legacy_measurements.jl` gives the previously example-only Wilson-loop,
   loop-correlation, gluonic-correlation, topological-density-correlation,
   chiral-condensate, eigenvalue, and local spectral-density measurements
@@ -105,7 +108,15 @@ old pointwise implementation, the largest absolute differences were
 in the density sums/averages arise from floating-point reduction order.
 
 `references/gauge_density_v1.toml` freezes every lattice site, scalar
-observables, and input SHA-256 digests. To regenerate it, activate an environment
+observables, and input SHA-256 digests. The matching input files
+`references/gauge_density_su2.bin` and `references/gauge_density_su3.bin`
+contain little-endian IEEE-754 `ComplexF64` values (real part followed by
+imaginary part), flattened in Julia column-major `(mu, color, color, X, Y, Z, T)`
+order. They match the existing input digests exactly; the observable references
+and numerical tolerances are unchanged. Tests decode the byte order explicitly
+and use the same input on every process and backend.
+
+To regenerate the TOML and both adjacent binary files, activate an environment
 pointing to the old commit (not this working tree), with the versions above:
 
 ```sh

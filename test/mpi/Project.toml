@@ -3,11 +3,14 @@ Gaugefields = "a461e10c-0d91-493e-bc41-027b226eee91"
 JACC = "0979c8fe-16a4-4796-9b82-89a9f10403ea"
 LatticeDiracOperators = "019239df-b0e3-486e-8e4c-d1c29ee5d6b9"
 LatticeMatrices = "dd6a91e4-736f-4540-ac85-13822ca7b545"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 QCDMeasurements = "15719ebc-80aa-4a1c-a78b-278b460177d7"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
 [sources]
 QCDMeasurements = {path = "../.."}
